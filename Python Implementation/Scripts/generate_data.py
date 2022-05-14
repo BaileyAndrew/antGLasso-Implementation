@@ -85,6 +85,39 @@ def matrix_normal_ks(
     
     return Ys
 
+def generate_sparse_posdef_matrix(
+    n: "Number of rows/columns of output",
+    expected_nonzero: "Number of nondiagonal nonzero entries expected",
+    *,
+    off_diagonal_scale: "Value strictly between 0 and 1 to guarantee posdefness" = 0.9,
+    size: "Number of samples to return" = 1
+) -> "(`size`, n, n) batch of sparse positive definite matrices":
+    """
+    Generates two sparse positive definite matrices.
+    Relies on Schur Product Theorem; we create a positive definite mask matrix and
+    then hadamard it with our precision matrices
+    """
+    
+    Psi: "Sparse posdef matrix - the output"
+    
+    p: "Bernoulli probability to achieve desired expected value of psi nonzeros"
+    p = np.sqrt(expected_nonzero / (n**2 - n))
+    
+    # Note that in the calculation of D, we make use of Numpy broadcasting.
+    # It's the same as hadamard-producting with np.eye(n) tiled `size` times
+    # in the size dimension and 1-b*b `n` times in the -1 dimension,
+    # which is equivalent to making a batch of diagonal matrices from
+    # entries of b.
+    Mask: "Mask to zero out elements while preserving pos. definiteness"
+    b = bernoulli(p=p).rvs(size=(size, n, 1)) * np.sqrt(off_diagonal_scale)
+    D = (1-b*b)*np.eye(n)
+    Mask = D + b @ b.transpose([0, 2, 1])
+
+    Psi = wishart.rvs(100, np.eye(n), size=size) / 100 * Mask
+    Psi /= np.trace(Psi, axis1=1, axis2=2).reshape(size, 1, 1) / n
+    
+    return Psi
+
 def generate_Ys(
     m: "Number of Samples",
     p: "Number of Datapoints",
