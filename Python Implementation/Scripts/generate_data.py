@@ -8,45 +8,6 @@ from scipy.stats import multivariate_normal
 from scipy.linalg import solve_triangular
 from Scripts.utilities import kron_sum, kron_sum_diag, kron_prod
 
-def multi_norm(
-    precision: "n by n Precision Matrix",
-    size: "Amount of samples"
-) -> "`size` samples of zero-mean multivariate normal with `precision` matrix":
-    
-    
-    # My solution follows second answer from:
-    # https://stackoverflow.com/questions/16706226/
-    #    how-do-i-draw-samples-from-multivariate-gaussian-distribution-parameterized-by-p
-    
-    # Basically, if LL^T = Q,
-    # then Lz = u where u ~ multivariate with precision Q
-    # given that z ~ multivariate independent
-    
-    n = precision.shape[0]
-    
-    # Note that this has shape (n, size) because this way
-    # L.T@z = v is batch-multiplying over the columns of z
-    # (even though typically (size, n) would be standard format)
-    z: "`size` independent samples of n-dimensional i.i.d. gaussian vector"
-    z = multivariate_normal(cov=1).rvs(
-        size=size*n
-    ).reshape(n, size)
-    
-    L: "Lower triangular Cholesky decomposition of precision matrix"
-    L = np.linalg.cholesky(precision)
-    
-    # We have to transpose the output because v is (n, size)
-    # instead of (size, n).
-    cholesky_solution = solve_triangular(
-        L.T,
-        z,
-        lower=False,
-        check_finite=False,
-        overwrite_b=True
-    ).T
-    
-    return cholesky_solution
-
 def matrix_normal_ks(
     Psi: "(Positive Definite) (n, n) Precision Matrix",
     Theta: "(Positive Definite) (p, p) Precision Matrix",
@@ -64,12 +25,9 @@ def matrix_normal_ks(
     
     Omega: "kronsum(Psi, Theta) - need not be calculated"
     Lam_inv: "Square root of matrix of eigenvalues of inverse of Omega" 
-    # Equivalent to Lam_inv = np.sqrt(1 / np.diag(kron_sum(np.diag(u), np.diag(v))))
-    # but ~3x as fast
     Lam_inv = np.sqrt(1 / kron_sum_diag(u, v))
     
     A: "Matrix to map i.i.d. gaussian to Omega-precision gaussian"
-    # 90% of computational cost comes from np.kron in this expression
     A = kron_prod(U, V) * Lam_inv
     
     # Note that shape is (n, size) instead of standard (size, n)
@@ -111,13 +69,9 @@ def batched_matrix_normal_ks(
     
     Omega: "kronsum(Psi, Theta) - need not be calculated"
     Lam_inv: "Square root of matrix of eigenvalues of inverse of Omega" 
-    # Equivalent to Lam_inv = np.sqrt(1 / np.diag(kron_sum(np.diag(u), np.diag(v))))
-    # but ~3x as fast
     Lam_inv = np.sqrt(1 / kron_sum_diag(u, v)).reshape((batches, 1, n*p))
     
     A: "Matrix to map i.i.d. gaussian to Omega-precision gaussian"
-    # 90% of computational cost comes from np.kron in this expression
-    #A = np.kron(U, V) * Lam_inv
     A = np.einsum('bik,bjl->bijkl', U, V).reshape(batches, n*p,n*p) * Lam_inv
     
     z: "`size` independent samples of n-dimensional i.i.d. gaussian vector"
@@ -240,18 +194,8 @@ def generate_Ys(
             rowcov=np.linalg.inv(Theta),
             colcov=np.linalg.inv(Psi)
         ).rvs(size=m)
-    elif structure == "Cholesky Kronecker Sum":
-        # This method has been superseded by one based on SVD
-        # Will leave this here for a bit in case I can think of a way
-        # to optimize it, since their runtimes are comparable
-        # (SVD method is about 6x as fast currently)
-        Ys_vec = multi_norm(kron_sum(Psi, Theta), m)
-        Ys = np.transpose(Ys_vec.reshape((m, n, p)), [0, 2, 1])
     elif structure == "Kronecker Sum":
-        # Based on SVD.  In Numpy 1.23 they made `np.kron` 5x faster,
-        # which will should improve the runtime of this method when
-        # Numpy 1.23 is released as 90% of its runtime is currently
-        # taken up by a single call to `np.kron`.
+        # Based on SVD.
         Ys = matrix_normal_ks(Psi, Theta, m)
     elif structure == "Inefficient Kronecker Sum":
         # Generates from first principles, very slow for medium-large inputs
