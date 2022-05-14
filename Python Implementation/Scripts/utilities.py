@@ -57,7 +57,7 @@ def kron_sum_diag(
     Computes the diagonal of the kronecker sum of two diagonal matrixes,
     given as input the diagonals of the two input matrices
     """
-    if len(a.shape) == 2:
+    if a.ndim == 2:
         uses_batches = True
     else:
         uses_batches = False
