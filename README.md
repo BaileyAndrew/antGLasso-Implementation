@@ -21,7 +21,7 @@ where the first index has different precision matrices, the second index is how 
 have helped in exploring how penalties, sizes, and densities affect precision/recall.  Unfortunately, I run out of memory for
 even the smallest batches :(_
 
-About 70% of the runtime is in a kronecker product (custom implementation that outperforms `np.kron`, and 30% is due to a
+About 70% of the runtime is in a kronecker product (custom implementation that outperforms `np.kron`), and 30% is due to a
 matrix multiplication.  If low number of samples, nearly all of the runtime is from the kronecker product.
 
 ## Matrix Decomposition
