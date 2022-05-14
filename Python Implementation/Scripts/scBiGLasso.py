@@ -11,57 +11,6 @@ import warnings
 # 'sisj' will represent '\i\j'
 # i.e. s = \
 
-def _A_subblock_full_complexity(
-    i: "Row of precision matrix we're currently estimating",
-    j: "Subblock of A_sisi we want to calculate",
-    W: "Analog of covariance matrix",
-    v: "Diagonal matrix of eigenvalues",
-    psi_ii: "Diagonal element of Psi"
-):
-    """
-    For purposes of comparison, this is the 'old way'
-    to calculate the A subblock
-    """
-    p, _ = v.shape
-    W_sij = np.delete(W, i, axis=0)[:, j]
-    return tr_p(
-        W_sij @ np.linalg.inv(psi_ii * np.eye(p) + v),
-        p
-    )
-
-def _A_subblock(
-    i: "Row of precision matrix we're currently estimating",
-    j: "Subblock of A_sisi we want to calculate",
-    U: "Eigenvectors of Psi",
-    u: "Diagonal matrix of eigenvalues of Psi",
-    v: "Diagonal matrix of eigenvalues of Theta",
-    psi_ii: "Diagonal element of Psi"
-):
-    """
-    The indices here are different than those used in paper.
-    
-    paper -> code:
-    
-    i -> k   [inner sum index]
-    j -> ell [outer sum index]
-      -> t   [row of column of A; not indexed in paper]
-      -> i   [row of precision matrix; not indexed in paper]
-      -> j   [column of A; not indexed in paper]
-    """
-    n, _ = u.shape
-    p, _ = v.shape
-    
-    def term(t):
-        return sum(
-            1 / (psi_ii + v[ell, ell])
-            * sum([
-                (U[t, k] * U[j, k]) / (u[k, k] + v[ell, ell])
-                for k in range(0, n)
-            ])
-            for ell in range(0, p)
-        )
-    
-    return np.array([term(t) for t in range(0, n) if t != i]).reshape(n-1, 1)
 
 def _calculate_A(
     i: "Row of precision matrix we're currently estimating",
@@ -94,52 +43,6 @@ def _calculate_A(
     B = (1 / (psi_ii + v)).squeeze()
     C = 1 / (u + v)
     newer_way = np.einsum("l, kl, ak, bk -> ab", B, C, U_si, U_si, optimize=path)
-    
-    
-    # The way it is done in the matlab code, for comparison
-    # note that in the matlab code, their v means something
-    # different than mine, so their v is `v_` here.
-    """
-    L1 = u
-    L2 = v.T
-    U11 = np.delete(U, i, axis=0)
-    v_ = 1 / (psi_ii + L2)
-    recip_lambdas = 1 / (L1 + L2.T)
-    temp_mat = recip_lambdas @ v_
-    matlab_way = np.empty((n-1, n-1))
-    for k in range(0, n-1):
-        # Note that we are implicitly skipping the index i
-        # since all matrices here have already had it removed
-        matlab_way[:, k] = ((U11[k, :] * U11) @ temp_mat).squeeze()
-    """
-    
-    # old_way to calculate it:
-    # new_way is about 4x faster
-    """
-    Asub = lambda i, j: _A_subblock(i, j, U, u, v, psi_ii)
-    old_way = np.concatenate(
-        [Asub(i, j) for j in range(0, n) if j != i],
-        axis=1
-    )
-    """
-    
-    # Another way, as a sum of outer products
-    # newer_way is about 20x faster
-    # [Actually with einsum path provided, its ~40x now]
-    """
-    new_way = sum(
-        1 / (psi_ii + v[ell, ell])
-        * sum(
-            1 / (u[k, k] + v[ell, ell])
-            * (
-                (temp := np.delete(U, i, axis=0)[:, k][np.newaxis].T)
-                @ temp.T
-            )
-            for k in range(0, n)
-        )
-        for ell in range(0, p)
-    )
-    """
     
     return newer_way
     
