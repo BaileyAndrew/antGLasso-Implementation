@@ -31,8 +31,8 @@ Given 100 samples of (100, 100) matrix variate data, calculating Psi/Theta takes
 effectively irrelevant for this.
 
 _This has been aggressively optimized and it's hard to see where I could improve it.  There is opportunity to make this run
-on batches as well, just like for data generation, but because some in the batch may converge sooner than others it could
-actually be a non-negligible headache._
+on batches as well, just like for data generation, but 'batch lasso' isn't very sensible I think so it could
+be a non-negligible headache - I don't think this is batch-friendly code._
 
 Currently, half the runtime takes place inside `scikit-learn`'s Lasso implementation, and I'm unlikely to be able to do anything
 about that.  I did try `cvxpy`'s implementation, which was notably slower.  The other half takes place in a single call to
