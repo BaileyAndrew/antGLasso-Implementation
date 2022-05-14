@@ -41,7 +41,12 @@ def kron_sum_diag(
     Computes the diagonal of the kronecker sum of two diagonal matrixes,
     given as input the diagonals of the two input matrices
     """
-    
+    if len(a.shape) == 2:
+        uses_batches = True
+    else:
+        uses_batches = False
+        a = a[np.newaxis, ...]
+        b = b[np.newaxis, ...]
     batches, m = a.shape
     _, n = b.shape
     
@@ -52,7 +57,10 @@ def kron_sum_diag(
     # then flatten it in a way contrary to the tiling.
     A = np.tile(a, (n, 1, 1)).transpose([1, 2, 0]).reshape((batches, n*m))
     B = np.tile(b, (m, 1, 1)).transpose([1, 0, 2]).reshape((batches, n*m))
-    return A + B
+    if uses_batches:
+        return A + B
+    else:
+        return (A + B)[0, ...]
 
 def LASSO_cvxpy(
     X: "Coefficient matrix",

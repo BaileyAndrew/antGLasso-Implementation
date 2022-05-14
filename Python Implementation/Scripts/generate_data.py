@@ -48,6 +48,44 @@ def multi_norm(
     return cholesky_solution
 
 def matrix_normal_ks(
+    Psi: "(Positive Definite) (n, n) Precision Matrix",
+    Theta: "(Positive Definite) (p, p) Precision Matrix",
+    size: "Number of Samples"
+):
+    """
+    Kronecker Sum structured matrix-variate gaussian distribution
+    """
+    
+    n = Psi.shape[0]
+    p = Theta.shape[0]
+    
+    u, U = np.linalg.eigh(Psi)
+    v, V = np.linalg.eigh(Theta)    
+    
+    Omega: "kronsum(Psi, Theta) - need not be calculated"
+    Lam_inv: "Square root of matrix of eigenvalues of inverse of Omega" 
+    # Equivalent to Lam_inv = np.sqrt(1 / np.diag(kron_sum(np.diag(u), np.diag(v))))
+    # but ~3x as fast
+    Lam_inv = np.sqrt(1 / kron_sum_diag(u, v))
+    
+    A: "Matrix to map i.i.d. gaussian to Omega-precision gaussian"
+    # 90% of computational cost comes from np.kron in this expression
+    A = np.kron(U, V) * Lam_inv
+    
+    # Note that shape is (n, size) instead of standard (size, n)
+    # to make the batched matrix multiplication easier
+    z: "`size` independent samples of n-dimensional i.i.d. gaussian vector"
+    z = multivariate_normal(cov=1).rvs(
+        size=size*(n*p)
+    ).reshape(n*p, size)
+    
+    # Transpose to return to standard shape (size, n)
+    Ys_vec: "Vectorized version of output matrix" = (A @ z).T
+    Ys = np.transpose(Ys_vec.reshape((size, n, p)), [0, 2, 1])
+    
+    return Ys
+
+def batched_matrix_normal_ks(
     Psi: "(Positive Definite) (m, n, n) Precision Matrix",
     Theta: "(Positive Definite) (m, p, p) Precision Matrix",
     size: "Number of Samples"
@@ -156,7 +194,7 @@ def generate_matrix_variate_data(
                 colcov=np.linalg.inv(Psi)
             ).rvs(size=m)
     elif structure == "Kronecker Sum":
-        Ys = matrix_normal_ks(Psi, Theta, m)
+        Ys = batched_matrix_normal_ks(Psi, Theta, m)
         
     return Psi, Theta, Ys
             
