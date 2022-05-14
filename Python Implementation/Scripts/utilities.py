@@ -124,12 +124,18 @@ def LASSO(
 def precision(
     cm: "[[TP, FP], [FN, TN]]"
 ):
-    return cm[0, 0] / (cm[0, 0] + cm[0, 1])
+    denom = (cm[0, 0] + cm[0, 1])
+    if denom == 0:
+        return 1
+    return cm[0, 0] / denom
 
 def recall(
     cm: "[[TP, FP], [FN, TN]]"
 ):
-    return cm[0, 0] / (cm[0, 0] + cm[1, 0])
+    denom = (cm[0, 0] + cm[1, 0])
+    if denom == 0:
+        return 1
+    return cm[0, 0] / denom
 
 def accuracy(
     cm: "[[TP, FP], [FN, TN]]"
