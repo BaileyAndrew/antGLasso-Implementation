@@ -4,7 +4,6 @@ This script calculates scBiGLasso
 
 import numpy as np
 from sklearn.utils._testing import ignore_warnings
-from sklearn.exceptions import ConvergenceWarning
 from Scripts.utilities import LASSO
 import warnings
 
