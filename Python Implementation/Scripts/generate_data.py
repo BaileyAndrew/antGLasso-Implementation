@@ -156,7 +156,7 @@ def generate_sparse_posdef_matrix(
     
     return Psi
 
-def generate_matrix_variate_data(
+def generate_batched_Ys(
     m: "Number of samples from same Psi/Theta",
     p: "Number of datapoints",
     n: "Number of features",
@@ -210,59 +210,48 @@ def generate_Ys(
 ) -> "(n, n) precision matrix, (p, p) precision matrix, (m, p, n) sample tensor":
     
     """
-    Generates two sparse positive definite matrices.
-    Relies on Schur Product Theorem; we create a positive definite mask matrix and
-    then hadamard it with our precision matrices
-    
-    Then generate m samples of p by n matrices from the matrix normal (kronecker
+    Generate m samples of p by n matrices from the matrix normal (kronecker
     sum or kronecker product) distribution using these two precision matrices
     """
     
-    p_psi: "Bernoulli probability to achieve desired expected value of psi nonzeros"
-    p_psi = np.sqrt(expected_nonzero_psi / (n**2 - n))
-    p_theta: "Bernoulli probability to achieve desired expected value of theta nonzeros"
-    p_theta = np.sqrt(expected_nonzero_theta / (n**2 - n))
-    
-    Psi_mask: "Mask to zero out elements while preserving pos. definiteness"
-    Psi_b = bernoulli(p=p_psi).rvs(size=(n, 1)) * np.sqrt(off_diagonal_scale)
-    Psi_D = np.diagflat(1 - Psi_b * Psi_b)
-    Psi_mask = Psi_D + Psi_b @ Psi_b.T
-    
-    Theta_mask: "Mask to zero out elements while preserving pos. definiteness"
-    Theta_b = bernoulli(p=p_theta).rvs(size=(p, 1)) * np.sqrt(off_diagonal_scale)
-    Theta_D = np.diagflat(1 - Theta_b * Theta_b)
-    Theta_mask = Theta_D + Theta_b @ Theta_b.T
-
-    Psi_gen = wishart.rvs(100, np.eye(n)) / 100 * Psi_mask
-    Theta_gen = wishart.rvs(100, np.eye(p)) / 100 * Theta_mask
-    Psi_gen /= np.diag(Psi_gen).mean()
-    Theta_gen /= np.diag(Theta_gen).mean()
+    Psi: "(n, n)" = generate_sparse_posdef_matrix(
+        n,
+        expected_nonzero_psi, 
+        off_diagonal_scale=off_diagonal_scale,
+        size=1
+    ).squeeze()
+    Theta: "(p, p)" = generate_sparse_posdef_matrix(
+        p,
+        expected_nonzero_theta, 
+        off_diagonal_scale=off_diagonal_scale,
+        size=1
+    ).squeeze()
     
     if structure == "Kronecker Product":
         Ys = matrix_normal(
-            rowcov=np.linalg.inv(Theta_gen),
-            colcov=np.linalg.inv(Psi_gen)
+            rowcov=np.linalg.inv(Theta),
+            colcov=np.linalg.inv(Psi)
         ).rvs(size=m)
     elif structure == "Cholesky Kronecker Sum":
         # This method has been superseded by one based on SVD
         # Will leave this here for a bit in case I can think of a way
         # to optimize it, since their runtimes are comparable
         # (SVD method is about 6x as fast currently)
-        Ys_vec = multi_norm(kron_sum(Psi_gen, Theta_gen), m)
+        Ys_vec = multi_norm(kron_sum(Psi, Theta), m)
         Ys = np.transpose(Ys_vec.reshape((m, n, p)), [0, 2, 1])
     elif structure == "Kronecker Sum":
         # Based on SVD.  In Numpy 1.23 they made `np.kron` 5x faster,
         # which will should improve the runtime of this method when
         # Numpy 1.23 is released as 90% of its runtime is currently
         # taken up by a single call to `np.kron`.
-        Ys = matrix_normal_ks(Psi_gen, Theta_gen, m)
+        Ys = matrix_normal_ks(Psi, Theta, m)
     elif structure == "Inefficient Kronecker Sum":
         # Generates from first principles, very slow for medium-large inputs
         # but useful when testing speedups to the `Kronecker Sum` structure
         # as we can use this as a ground truth to compare against.
-        Omega_gen: "Combined precision matrix" = kron_sum(Psi_gen, Theta_gen)
-        Sigma_gen: "Covariance matrix" = np.linalg.inv(Omega_gen)
-        Ys_vec = multivariate_normal(cov=Sigma_gen).rvs(size=m)
+        Omega: "Combined precision matrix" = kron_sum(Psi, Theta)
+        Sigma: "Covariance matrix" = np.linalg.inv(Omega)
+        Ys_vec = multivariate_normal(cov=Sigma).rvs(size=m)
         Ys = np.transpose(Ys_vec.reshape((m, n, p)), [0, 2, 1])
         # ^^ DO NOT do `Ys = Ys_vec.reshape((m, p, n))`...
         # Because numpy thinks of matrices as 'row first' whereas the
@@ -276,5 +265,5 @@ def generate_Ys(
     if (m > 1):
         Ys -= Ys.mean(axis=0)
         
-    return Psi_gen, Theta_gen, Ys
+    return Psi, Theta, Ys
     
