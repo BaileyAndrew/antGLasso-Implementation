@@ -33,27 +33,25 @@ def kron_sum(A, B):
     b, _ = B.shape
     return np.kron(A, np.eye(b)) + np.kron(np.eye(a), B)
 
-def kron_sum_diag(a, b):
+def kron_sum_diag(
+    a: "(batches, m)",
+    b: "(batches, n)"
+) -> "(batches, m*n)":
     """
     Computes the diagonal of the kronecker sum of two diagonal matrixes,
     given as input the diagonals of the two input matrices
-    
-    Always returns a column vector, i.e. shape of form (x, 1)
     """
-    # Remove nuisance dimensions
-    a = a.squeeze()
-    b = b.squeeze()
     
-    m = a.shape[0]
-    n = b.shape[0]
+    batches, m = a.shape
+    _, n = b.shape
     
     # Result is sum of [a1 ... a1 a2 ... a2 ... am ... am]
     # and [b1 b2 ... bn b1 b2 ... bn ... b1 b2 ... bn]
     # To get the second vector, we can tile a.
     # To get the first vector, we can tile b in a second dimension and
     # then flatten it in a way contrary to the tiling.
-    A = np.tile(a, (n, 1)).T.reshape((1, n*m))
-    B = np.tile(b, (1, m))
+    A = np.tile(a, (n, 1, 1)).transpose([1, 2, 0]).reshape((batches, n*m))
+    B = np.tile(b, (m, 1, 1)).transpose([1, 0, 2]).reshape((batches, n*m))
     return A + B
 
 def LASSO_cvxpy(
