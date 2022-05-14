@@ -3,7 +3,7 @@ This script calculates scBiGLasso
 """
 
 import numpy as np
-from sklearn.utils._testing import ignore_warnings
+from sklearn.exceptions import ConvergenceWarning
 from Scripts.utilities import LASSO
 import warnings
 
@@ -183,11 +183,6 @@ def _scBiGLasso_internal(
         # Note that the paper has A @ psi + p * t = 0
         # But sklearn minimizes A @ psi - p * t
         # Hence the factor of -p we apply.
-        global A_sisi_test
-        global np_t_isi_test
-        A_sisi_test = A_sisi
-        
-        np_t_isi_test = -p * t_isi
         psi_isi_update = LASSO(A_sisi, -p * t_isi, beta)
         
         # Update row
