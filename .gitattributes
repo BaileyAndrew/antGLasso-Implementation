@@ -1,2 +1,3 @@
 # Stop counting Jupyter for git statistics...
 *.ipynb text
+*.ipynb linguist-vendored
