@@ -33,6 +33,22 @@ def kron_sum(A, B):
     b, _ = B.shape
     return np.kron(A, np.eye(b)) + np.kron(np.eye(a), B)
 
+def kron_prod(A, B):
+    """
+    Computes the kronecker product.  There is a built in
+    np.kron, but it's slow.  Can use a broadcasting trick to
+    speed things up.
+    
+    Trick from greggo's answer in:
+    https://stackoverflow.com/questions/7193870/speeding-up-numpy-kronecker-products
+    """
+    a1, a2 = A.shape
+    b1, b2 = B.shape
+    return (
+        A[:,np.newaxis,:,np.newaxis]
+        * B[np.newaxis,:, np.newaxis,:]
+    ).reshape((a1*b1, a2*b2))
+
 def kron_sum_diag(
     a: "(batches, m)",
     b: "(batches, n)"

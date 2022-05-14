@@ -6,7 +6,7 @@ import numpy as np
 from scipy.stats import wishart, matrix_normal, bernoulli
 from scipy.stats import multivariate_normal
 from scipy.linalg import solve_triangular
-from Scripts.utilities import kron_sum, kron_sum_diag
+from Scripts.utilities import kron_sum, kron_sum_diag, kron_prod
 
 def multi_norm(
     precision: "n by n Precision Matrix",
@@ -70,7 +70,7 @@ def matrix_normal_ks(
     
     A: "Matrix to map i.i.d. gaussian to Omega-precision gaussian"
     # 90% of computational cost comes from np.kron in this expression
-    A = np.kron(U, V) * Lam_inv
+    A = kron_prod(U, V) * Lam_inv
     
     # Note that shape is (n, size) instead of standard (size, n)
     # to make the batched matrix multiplication easier
@@ -92,6 +92,14 @@ def batched_matrix_normal_ks(
 ):
     """
     Kronecker Sum structured matrix-variate gaussian distribution
+    
+    I had to split the batched version into own function because it
+    made the nonbatched case slower.  I would have spent time trying
+    to optimize it, but I discovered that my computer can't handle even small
+    batches, so it's a moot point.
+    
+    There are probably areas where I create large intermediate matrices
+    that could be reduced to make it work on my computer.
     """
     
     batches = Psi.shape[0]
