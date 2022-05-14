@@ -13,26 +13,21 @@ My computer:
 
 ## Matrix-Variate Data Generation
 
-Generating 100 samples of (100, 100) matrix variate data from a KS-structured Matrix Normal takes 2-2.5 seconds.  The number of samples is
-effectively irrelevant for this.
+Generating 100 samples of (100, 100) matrix variate data from a KS-structured Matrix Normal takes ~0.75 seconds.
+The number of samples does affect this - about 30% of the runtime is due to there being 100 samples.
 
-_This has been well-optimized but still has avenues for improvement.
-Especially since most of my tests are actually on data of the shape (attempts, samples, n, p) where attempts is the number of precision matrix
-pairs to generate, samples is the number of samples to generate for each (Psi, Theta) pair, and then n, p are sizes of each sample.  There is
-the opportunity to make this code run quickly over batches._
+_This has been well-optimized but still has avenues for improvement.  I did try batching, i.e. generate (5, 100, 100, 100) samples
+where the first index has different precision matrices, the second index is how many samples from same distribution.  This would
+have helped in exploring how penalties, sizes, and densities affect precision/recall.  Unfortunately, I run out of memory for
+even the smallest batches :(_
 
-Currently, about 90% of the runtime takes place in a call to `np.kron`.  Conveniently, the next version of Numpy (1.23) contains
-improvements to this function so that it will be about 5x as fast on the test suite they used.  Although when I move to batch
-computation I won't be able to use this, and will rather use an `np.einsum` based solution - so the point may be moot.
+About 70% of the runtime is in a kronecker product (custom implementation that outperforms `np.kron`, and 30% is due to a
+matrix multiplication.  If low number of samples, nearly all of the runtime is from the kronecker product.
 
 ## Matrix Decomposition
 
 Given 100 samples of (100, 100) matrix variate data, calculating Psi/Theta takes 1.5-2 seconds.  The number of samples is
 effectively irrelevant for this.
-
-_This has been aggressively optimized and it's hard to see where I could improve it.  There is opportunity to make this run
-on batches as well, just like for data generation, but 'batch lasso' isn't very sensible I think so it could
-be a non-negligible headache - I don't think this is batch-friendly code._
 
 Currently, half the runtime takes place inside `scikit-learn`'s Lasso implementation, and I'm unlikely to be able to do anything
 about that.  I did try `cvxpy`'s implementation, which was notably slower.  The other half takes place in a single call to
