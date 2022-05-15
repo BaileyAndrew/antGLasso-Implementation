@@ -46,6 +46,38 @@ def _calculate_A(
     newer_way = np.einsum("l, kl, ak, bk -> ab", B, C, U_si, U_si, optimize=path)
     
     return newer_way
+
+def _calculate_full_A(
+    U: "Eigenvectors of Psi",
+    u: "Vector of eigenvalues of Psi",
+    v: "Vector of eigenvalues of Theta",
+    path: "The path for the einsum operation" = 'optimal'
+):
+    """
+    The indices here are different than those used in paper.
+    (Because the paper uses i,j here and elsewhere it uses i for
+    other things, we chose to stay consistent with the 'other things'
+    rather than this calculation)
+    
+    paper -> code:
+    
+    i -> k   [inner sum index]
+    j -> ell [outer sum index]
+      -> t   [row of column of A; not indexed in paper]
+      -> i   [row of precision matrix; not indexed in paper]
+    k -> j   [column of A]
+    """
+    
+    n = u.shape[0]
+    p = v.shape[1]
+    
+    # So far the best way, where we just let numpy figure out the most
+    # efficient way to do the sum
+    B = (1 / (1 + v)).squeeze()
+    C = 1 / (u + v)
+    newer_way = np.einsum("l, kl, ak, bk -> ab", B, C, U, U, optimize=path)
+    
+    return newer_way
     
 # Note: for some reason, LASSO_sklearn can fail to converge even though
 # LASSO_cvxpy will converge - but LASSO_sklearn's results are better in
@@ -64,15 +96,22 @@ def _scBiGLasso_internal(
     n, _ = Psi.shape
     p, _ = Theta.shape
     
+    U: "Eigenvectors of Psi"
+    u: "Diagonal eigenvalues of Psi"
+    u, U = np.linalg.eigh(out_Psi)
+    u = u.reshape((n, 1))
+    
     V: "Eigenvectors of Theta"
     v: "Diagonal eigenvalues of Theta"
     v, V = np.linalg.eigh(Theta)
     v = v.reshape((1, p))
     
+    A = _calculate_full_A(U, u, v)
+    
     for i in range(0, n):
         # Loop through rows of Psi
         
-        if recalculate_eigs or i == 0:
+        if recalculate_eigs and i != 0:
             U: "Eigenvectors of Psi"
             u: "Diagonal eigenvalues of Psi"
             u, U = np.linalg.eigh(out_Psi)
@@ -81,7 +120,7 @@ def _scBiGLasso_internal(
         psi_ii = out_Psi[i, i]
 
         # Estimate new psi_isi
-        A_sisi: "A_\i\i as in paper" = _calculate_A(i, U, u, v, psi_ii, path)
+        A_sisi: "A_\i\i as in paper" = np.delete(np.delete(A, i, axis=0), i, axis=1)
         t_isi = np.delete(T, i, axis=1)[i, :]
         
         # Note that the paper has A @ psi + p * t = 0
@@ -126,12 +165,19 @@ def scBiGLasso(
     T_theta = np.einsum("mpn, mln -> pl", Ys, Ys) / (m*n)
     
     if Psi_init is None:
-        Psi_init = T_psi.copy()
+        Psi_init = T_psi
     if Theta_init is None:
-        Theta_init = T_theta.copy()
+        Theta_init = T_theta
+        
+    # Now we make sure that the diagonals are 1, since it allows
+    # a simplification later on in the algorithm
+    D_psi = np.diag(1 / np.sqrt(np.diag(Psi_init)))
+    Psi_init = D_psi @ Psi_init @ D_psi
+    D_theta = np.diag(1 / np.sqrt(np.diag(Theta_init)))
+    Theta_init = D_theta @ Theta_init @ D_theta
     
-    Psi = Psi_init.copy()
-    Theta = Theta_init.copy()
+    Psi = Psi_init
+    Theta = Theta_init
     
     # Used to speed up computation of the A matrix prior to Lasso
     path_Psi: "Contraction order for the A matrix" = np.einsum_path(
