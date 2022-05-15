@@ -45,8 +45,8 @@ def kron_prod(A, B):
     a1, a2 = A.shape
     b1, b2 = B.shape
     return (
-        A[:,np.newaxis,:,np.newaxis]
-        * B[np.newaxis,:, np.newaxis,:]
+        A[:, np.newaxis, :, np.newaxis]
+        * B[np.newaxis, :, np.newaxis, :]
     ).reshape((a1*b1, a2*b2))
 
 def kron_sum_diag(
@@ -71,6 +71,8 @@ def kron_sum_diag(
     # To get the second vector, we can tile a.
     # To get the first vector, we can tile b in a second dimension and
     # then flatten it in a way contrary to the tiling.
+    # (It seems `np.repeat` could have been used for A, but
+    # tile already works so I'll leave it...)
     A = np.tile(a, (n, 1, 1)).transpose([1, 2, 0]).reshape((batches, n*m))
     B = np.tile(b, (m, 1, 1)).transpose([1, 0, 2]).reshape((batches, n*m))
     if uses_batches:
