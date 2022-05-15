@@ -34,7 +34,8 @@ matrix multiplication.  If low number of samples, nearly all of the runtime is f
 ## Matrix Decomposition
 
 Given 100 samples of (100, 100) matrix variate data, calculating Psi/Theta takes ~0.9 seconds.  The number of samples is
-effectively irrelevant for this.
+responsible for about 10% of this (from calculating the mean sample) - unless there is a very small amount of samples,
+in which case the algorithm often takes a lot longer to converge (~3 seconds).
 
 Currently, ~85% of the runtime takes place inside `scikit-learn`'s Lasso implementation, and I'm unlikely to be able to do anything
 about that.  I did try `cvxpy`'s implementation, which was notably slower.  The rest is in the deletion of rows from A.
