@@ -4,6 +4,13 @@ A Python implementation of the Scalable Bigraphical Lasso algorithm.  Implementa
 Note that I do not currently implement the nonparanormal sceptic layer,
 although I will add that at some point so that I can test this on actual count data!
 
+# Observations
+
+I'm still making some performance improvements so I have not focused too much on actually using it.  However, I have noticed that,
+for a precision matrix density of 10%, the algorithm gets better the larger the precision matrix.
+
+Also, if you have a small number of samples, it seems the algorithm takes much longer to converge.
+
 # Performance
 
 My computer:
@@ -26,15 +33,13 @@ matrix multiplication.  If low number of samples, nearly all of the runtime is f
 
 ## Matrix Decomposition
 
-Given 100 samples of (100, 100) matrix variate data, calculating Psi/Theta takes 1.5-2 seconds.  The number of samples is
+Given 100 samples of (100, 100) matrix variate data, calculating Psi/Theta takes ~0.9 seconds.  The number of samples is
 effectively irrelevant for this.
 
-Currently, half the runtime takes place inside `scikit-learn`'s Lasso implementation, and I'm unlikely to be able to do anything
-about that.  I did try `cvxpy`'s implementation, which was notably slower.  The other half takes place in a single call to
-`np.einsum` in the calculation of the A\i\i matrix.  It's possible that this could be improved, but I think it would require
-a deeper understanding of the costs of matrix operations than I currently posses.
+Currently, ~85% of the runtime takes place inside `scikit-learn`'s Lasso implementation, and I'm unlikely to be able to do anything
+about that.  I did try `cvxpy`'s implementation, which was notably slower.  The rest is in the deletion of rows from A.
 
-# Observations
-
-I'm still making some performance improvements so I have not focused too much on actually using it.  However, I have noticed that,
-for a precision matrix density of 10%, the algorithm gets better the larger the precision matrix.
+I had to assume that the diagonals of Psi/Theta were 1 to achieve this speedup.  Since diagonals can't be determined
+by the algorithm, that's not a big deal.  It however does prevent us from re-computing the eigenvalues/vectors every
+loop in the update of Psi/Theta.  This is not a big deal, large-sample code runs faster if we don't (I never tested
+small-samples though, and it could plausibly affect it then since small-samples seem to take many iterations).
