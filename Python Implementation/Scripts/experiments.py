@@ -43,6 +43,7 @@ def get_cms_for_betas(
                 beta_2=b,
                 Psi_init=None,#np.eye(Ys.shape[-1]),
                 Theta_init=None,#np.eye(Ys.shape[-1]),
+                verbose=verbose,
                 **kwargs_lasso
             )
             Psi_cm += generate_confusion_matrices(Psi, Psi_gen, mode=cm_mode)
@@ -62,16 +63,19 @@ def make_cm_plots(
     Theta_cms: "Corresponding confusion matrices for Theta",
     betas_to_highlight: "List of *indices* of beta values to highlight on graph" = [],
     title: "Title of the figure" = None
-) -> ("Matplotlib Figure", "Tuple of Axes"):
+) -> ("Matplotlib Figure", "Tuple of Axes", ("Dict of Precisions", "Dict of Recalls")):
+    
+    precisions: "Keys are 'Psi'/'Theta'" = dict({})
+    recalls:    "Keys are 'Psi'/'Theta'" = dict({})
     with plt.style.context('Solarize_Light2'):
         fig, (ax1, ax2) = plt.subplots(figsize=(16, 8), ncols=2)
         for confmats, ax, name in (
             (Psi_cms, ax1, "Psi"),
             (Theta_cms, ax2, "Theta")
         ):
-            precisions = [precision(cm) for cm in confmats]
-            recalls = [recall(cm) for cm in confmats]
-            ax.plot(recalls, precisions)
+            precisions[name] = [precision(cm) for cm in confmats]
+            recalls[name] = [recall(cm) for cm in confmats]
+            ax.plot(recalls[name], precisions[name])
             ax.set_xlabel("Recall")
             ax.set_ylabel("Precision")
             ax.set_title(name)
@@ -90,16 +94,19 @@ def make_cm_plots(
                 )
         if title is not None:
             fig.suptitle(title, fontsize=16)
-        return fig, (ax1, ax2)
+        return fig, (ax1, ax2), (precisions, recalls)
 
-def experiment_1(
+def create_precision_recall_curves(
+    betas_to_try: "List of L1 penalties to try",
     m: "Amount of samples",
     p: "Size of Psi/Theta",
-    betas_to_try: "List of L1 penalties to try",
     indices_to_highlight: "List of indices of betas to highlight on plot",
     attempts: "Number of times to average over" = 100,
     verbose: bool = False
 ):
+    """
+    Given a list of L1 penalties, calculate the 
+    """
     n = p
     kwargs_gen = {
         'm': m,
@@ -127,5 +134,5 @@ def experiment_1(
         Psi_cms,
         Theta_cms,
         indices_to_highlight,
-        f"Precision-Recall Plots for {n}x{n} Psi/Theta as L1 Penalty β Varies"
+        f"Precision-Recall Plots for {n}x{n} Psi/Theta as L1 Penalty β Varies ({m} samples)"
     )

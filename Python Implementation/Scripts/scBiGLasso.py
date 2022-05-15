@@ -32,8 +32,9 @@ def _calculate_A(
     j -> ell [outer sum index]
       -> t   [row of column of A; not indexed in paper]
       -> i   [row of precision matrix; not indexed in paper]
-      -> j   [column of A; not indexed in paper]
+    k -> j   [column of A]
     """
+    
     n = u.shape[0]
     p = v.shape[1]
     
