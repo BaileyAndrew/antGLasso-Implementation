@@ -11,43 +11,7 @@ import warnings
 # 'sisj' will represent '\i\j'
 # i.e. s = \
 
-
 def _calculate_A(
-    i: "Row of precision matrix we're currently estimating",
-    U: "Eigenvectors of Psi",
-    u: "Vector of eigenvalues of Psi",
-    v: "Vector of eigenvalues of Theta",
-    psi_ii: "Diagonal element of Psi",
-    path: "The path for the einsum operation" = 'optimal'
-):
-    """
-    The indices here are different than those used in paper.
-    (Because the paper uses i,j here and elsewhere it uses i for
-    other things, we chose to stay consistent with the 'other things'
-    rather than this calculation)
-    
-    paper -> code:
-    
-    i -> k   [inner sum index]
-    j -> ell [outer sum index]
-      -> t   [row of column of A; not indexed in paper]
-      -> i   [row of precision matrix; not indexed in paper]
-    k -> j   [column of A]
-    """
-    
-    n = u.shape[0]
-    p = v.shape[1]
-    
-    # So far the best way, where we just let numpy figure out the most
-    # efficient way to do the sum
-    U_si = np.delete(U, i, axis=0)
-    B = (1 / (psi_ii + v)).squeeze()
-    C = 1 / (u + v)
-    newer_way = np.einsum("l, kl, ak, bk -> ab", B, C, U_si, U_si, optimize=path)
-    
-    return newer_way
-
-def _calculate_full_A(
     U: "Eigenvectors of Psi",
     u: "Vector of eigenvalues of Psi",
     v: "Vector of eigenvalues of Theta",
@@ -72,12 +36,12 @@ def _calculate_full_A(
     p = v.shape[1]
     
     # So far the best way, where we just let numpy figure out the most
-    # efficient way to do the sum
+    # efficient way to do the sum.
+    # Note: the 1 in 1+v is psi_ii in paper, but we assume its
+    # 1 here b/c it allows us to gain a major speedup.
     B = (1 / (1 + v)).squeeze()
     C = 1 / (u + v)
-    newer_way = np.einsum("l, kl, ak, bk -> ab", B, C, U, U, optimize=path)
-    
-    return newer_way
+    return np.einsum("l, kl, ak, bk -> ab", B, C, U, U, optimize=path)
     
 # Note: for some reason, LASSO_sklearn can fail to converge even though
 # LASSO_cvxpy will converge - but LASSO_sklearn's results are better in
@@ -89,7 +53,6 @@ def _scBiGLasso_internal(
     T: "Estimated covariance matrix",
     beta: "L1 penalty",
     path: "Contraction order for A's einsum calculation" = 'optimal',
-    recalculate_eigs: "Do we recompute eigvals/vecs every loop" = False,
     verbose: bool = False
 ):
     out_Psi = Psi.copy()
@@ -106,17 +69,10 @@ def _scBiGLasso_internal(
     v, V = np.linalg.eigh(Theta)
     v = v.reshape((1, p))
     
-    A = _calculate_full_A(U, u, v)
+    A: "Used for the A_\i\i in paper" = _calculate_A(U, u, v)
     
     for i in range(0, n):
         # Loop through rows of Psi
-        
-        if recalculate_eigs and i != 0:
-            U: "Eigenvectors of Psi"
-            u: "Diagonal eigenvalues of Psi"
-            u, U = np.linalg.eigh(out_Psi)
-            u = u.reshape((n, 1))
-        
         psi_ii = out_Psi[i, i]
 
         # Estimate new psi_isi
@@ -184,16 +140,16 @@ def scBiGLasso(
         "l, kl, ak, bk -> ab",
         np.empty((p,)),
         np.empty((n, p)),
-        np.empty((n-1, n)),
-        np.empty((n-1, n)),
+        np.empty((n, n)),
+        np.empty((n, n)),
         optimize='optimal'
     )[0]
     path_Theta: "Contraction order for the A matrix" = np.einsum_path(
         "l, kl, ak, bk -> ab",
         np.empty((n,)),
         np.empty((p, n)),
-        np.empty((p-1, p)),
-        np.empty((p-1, p)),
+        np.empty((p, p)),
+        np.empty((p, p)),
         optimize='optimal'
     )[0]
     
