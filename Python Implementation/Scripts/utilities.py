@@ -3,8 +3,9 @@ Contains helper functions
 """
 
 import numpy as np
-import cvxpy as cp
+#import cvxpy as cp
 from sklearn import linear_model
+#from celer import Lasso as lasso_celer
 
 def tr_p(A: "Matrix", p: "Contraction size"):
     """
@@ -121,6 +122,24 @@ def LASSO_sklearn(
     # pre-creating these with warm_start for each row does not
     # improve speed unfortunately.
     lasso = linear_model.Lasso(alpha=lmbda, fit_intercept=False, **kwargs)
+    try:
+        return lasso.fit(X, y).coef_
+    except ValueError as e:
+        print(X)
+        raise e
+        
+def LASSO_celer(
+    X: "Coefficient matrix",
+    y: "Affine vector",
+    lmbda: "L1 penalty",
+    **kwargs: "To pass to sklearn"
+):
+    """
+    Lasso regression using scipy
+    """
+    # pre-creating these with warm_start for each row does not
+    # improve speed unfortunately.
+    lasso = lasso_celer(alpha=lmbda, fit_intercept=False, **kwargs)
     try:
         return lasso.fit(X, y).coef_
     except ValueError as e:
