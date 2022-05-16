@@ -33,23 +33,21 @@ def get_cms_for_betas(
     for b in betas_to_try:
         if verbose:
             print(f"\n\nTrying beta={b:.6f}")
-        Psi_cm = np.empty((2, 2))
-        Theta_cm = np.empty((2, 2))
+        Psi_cm = np.empty((attempts, 2, 2))
+        Theta_cm = np.empty((attempts, 2, 2))
         for attempt in range(attempts):
             Psi_gen, Theta_gen, Ys = generate_Ys(**kwargs_gen)
             Psi, Theta = scBiGLasso(
                 Ys=Ys,
                 beta_1=b,
                 beta_2=b,
-                Psi_init=None,#np.eye(Ys.shape[-1]),
-                Theta_init=None,#np.eye(Ys.shape[-1]),
                 verbose=verbose,
                 **kwargs_lasso
             )
-            Psi_cm += generate_confusion_matrices(Psi, Psi_gen, mode=cm_mode)
-            Theta_cm += generate_confusion_matrices(Theta, Theta_gen, mode=cm_mode)
-        Psi_cms.append(Psi_cm / (Psi_cm.sum()))
-        Theta_cms.append(Theta_cm / (Theta_cm.sum()))
+            Psi_cm[attempt, ...] = generate_confusion_matrices(Psi, Psi_gen, mode=cm_mode)
+            Theta_cm[attempt, ...] = generate_confusion_matrices(Theta, Theta_gen, mode=cm_mode)
+        Psi_cms.append(Psi_cm.mean(axis=0))# / (Psi_cm.sum()))
+        Theta_cms.append(Theta_cm.mean(axis=0))# / (Theta_cm.sum()))
         if verbose:
             print(f"\tPsi Confusion: \n{Psi_cms[-1]}")
             print(f"\tTheta Confusion: \n{Theta_cms[-1]}")
@@ -113,12 +111,13 @@ def create_precision_recall_curves(
         'p': p,
         'n': n,
         'structure': 'Kronecker Sum',
-        'expected_nonzero_psi': p**2 / 5,
-        'expected_nonzero_theta': n**2 / 5
+        'expected_nonzero_psi': n**2 / 5,
+        'expected_nonzero_theta': p**2 / 5
     }
     kwargs_lasso = {
-        "N": 100,
-        "eps": 10e-3,
+        'N': 100,
+        'eps': 10e-3,
+        'lasso_every_loop': True
     }
 
     Psi_cms, Theta_cms = get_cms_for_betas(

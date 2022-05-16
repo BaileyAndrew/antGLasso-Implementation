@@ -61,6 +61,7 @@ def _scBiGLasso_internal(
     T_nodiag: "Estimated covariance matrix with diagonals set to zero",
     beta: "L1 penalty",
     path: "Contraction order for A's einsum calculation" = 'optimal',
+    lasso_every_loop: bool = False,
     verbose: bool = False
 ):
     n, _ = Psi.shape
@@ -87,6 +88,9 @@ def _scBiGLasso_internal(
     # However the time it takes to check the matrix rank rules out using it :(
     # because even though it's almost always posdef, it's sometimes semidef.
     
+    if lasso_every_loop:
+        Psi = LASSO(np.eye(n), Psi, beta / n)
+        Psi += 0.001 * np.eye(n) # prevent 0 diagonals
     Psi = scale_diagonals_to_1(Psi)
         
     if verbose:
@@ -105,6 +109,7 @@ def scBiGLasso(
     beta_2: "Theta's L1 penalty",
     Psi_init: "n by n initial estimate for Psi" = None,
     Theta_init: "p by p initial estimate for Theta" = None,
+    lasso_every_loop: bool = False,
     verbose: bool = False
 ) -> ("Psi", "Theta"):
     # If m=1 (only one observation), we allow p by n matrix as input
@@ -160,10 +165,26 @@ def scBiGLasso(
         old_Theta = Theta.copy()
         
         # Estimate Psi
-        Psi, _ = _scBiGLasso_internal(Psi, Theta, T_psi, beta_1, path_Psi, verbose)
+        Psi, _ = _scBiGLasso_internal(
+            Psi,
+            Theta,
+            T_psi,
+            beta_1,
+            path_Psi,
+            lasso_every_loop,
+            verbose
+        )
         
         # Now estimate Theta
-        Theta, log_det = _scBiGLasso_internal(Theta, Psi, T_theta, beta_2, path_Theta, verbose)
+        Theta, log_det = _scBiGLasso_internal(
+            Theta,
+            Psi,
+            T_theta,
+            beta_2,
+            path_Theta,
+            lasso_every_loop,
+            verbose
+        )
             
         # Keep track of objective function, if verbose
         if verbose:
@@ -191,8 +212,9 @@ def scBiGLasso(
                     print(f"Early convergence on iteration {tau}!")
                 break
             old_convergence_checks = old_convergence_checks[1:]
-       
-    Psi = scale_diagonals_to_1(LASSO(np.eye(n), Psi, beta_1 / n))
-    Theta = scale_diagonals_to_1(LASSO(np.eye(p), Theta, beta_2 / p))
+     
+    if not lasso_every_loop:
+        Psi = scale_diagonals_to_1(LASSO(np.eye(n), Psi, beta_1 / n))
+        Theta = scale_diagonals_to_1(LASSO(np.eye(p), Theta, beta_2 / p))
     
     return Psi, Theta
