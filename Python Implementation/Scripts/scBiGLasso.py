@@ -221,3 +221,59 @@ def scBiGLasso(
         Theta = scale_diagonals_to_1(LASSO(np.eye(p), Theta, beta_2 / p))
     
     return Psi, Theta
+
+
+def analyticBiGLasso(
+    Ys: "m by p by n tensor, m slices of observed p by n matrix Y_k",
+    beta_1: "L1 penalty for Psi" = 0,
+    beta_2: "L2 penalty for Theta" = 0
+) -> ("Psi", "Theta"):
+    """
+    I think I've found an analytic solution.
+    """
+    if len(Ys.shape) == 2:
+        Ys = Ys[np.newaxis, :, :]
+        
+    (m, p, n) = Ys.shape
+    T_psi: "(Average) empirical covariance matrix for Psi"
+    T_theta: "(Average) empirical covariance matrix for Theta"
+    T_psi = np.einsum("mpn, mpl -> nl", Ys, Ys) / (m*p)
+    T_theta = np.einsum("mpn, mln -> pl", Ys, Ys) / (m*n)
+    
+    # Hadamard multiply by the K matrices
+    T_psi *= (2*p - 1) * np.ones(T_psi.shape) + p * np.eye(T_psi.shape[0])
+    T_theta *= (2*n - 1) * np.ones(T_theta.shape) + n * np.eye(T_theta.shape[0])
+    
+    # Calculate the svd
+    ell_psi, U = np.linalg.eig(T_psi)
+    ell_theta, V = np.linalg.eig(T_theta)
+    
+    # Simpler if we work with the reciprocals
+    ell_psi = 1 / ell_psi
+    ell_theta = 1 / ell_theta
+    
+    # Construct the matrix that relates these to the eigenvalues
+    X = np.ones((n + p, n + p))
+    X[:n, :n] = p * np.eye(n)
+    X[n:, n:] = n * np.eye(p)
+    
+    # Find eigenvalues
+    ell = np.concatenate((ell_psi, ell_theta))
+    lmbda = np.linalg.lstsq(X, ell, rcond=None)[0]
+    u = lmbda[:n]
+    v = lmbda[n:]
+    
+    # Reconstruct Psi, Theta
+    Psi = U @ np.diag(u) @ U.T
+    Theta = V @ np.diag(v) @ V.T
+    Psi = scale_diagonals_to_1(Psi)
+    Theta = scale_diagonals_to_1(Theta)
+        
+    if beta_1 > 0: 
+        Psi = scale_diagonals_to_1(LASSO(np.eye(n), Psi, beta_1 / n))
+    if beta_2 > 0:
+        Theta = scale_diagonals_to_1(LASSO(np.eye(p), Theta, beta_2 / p))
+    
+    return Psi, Theta
+    
+    
