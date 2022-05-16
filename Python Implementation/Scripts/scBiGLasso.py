@@ -7,6 +7,7 @@ import cvxpy as cp
 from sklearn.exceptions import ConvergenceWarning
 from Scripts.utilities import LASSO, scale_diagonals_to_1
 from scipy.linalg import pinvh
+import scipy.linalg.lapack as lapack
 import warnings
 
 # Note: in matrix variable name subscripts:
@@ -72,10 +73,11 @@ def _scBiGLasso_internal(
     A: "Used for the A_\i\i in paper" = _calculate_A(U, u, v)
     
     T_nodiag = T - np.diag(np.diag(T))
-    # `pinvh` is ever-so-slightly faster than lstsq solution
-    #Psi = np.linalg.lstsq(A, A - p * T_nodiag, rcond=None)[0]
-    pseudo_inv_A = pinvh(A)
-    Psi = pseudo_inv_A @ (A - p * T_nodiag)
+    # Directly rely on lapack bindings to take advantage of A's symmetry!
+    #_, _, Psi, _ = lapack.dsysv(A, A - p * T_nodiag)
+    # But it is 95% of the time positive definite, so we can rely on that.
+    # I'm not sure what will happen if it's positive semidefinite though...
+    _, Psi, _ = lapack.dposv(A, A - p * T_nodiag)
     try:
         Psi = scale_diagonals_to_1(Psi)
     except ValueError as e:
@@ -119,8 +121,12 @@ def scBiGLasso(
         
     # Now we make sure that the diagonals are 1, since it allows
     # a simplification later on in the algorithm
-    Psi = scale_diagonals_to_1(Psi_init)
-    Theta = scale_diagonals_to_1(Theta_init)
+    try:
+        Psi = scale_diagonals_to_1(Psi_init)
+        Theta = scale_diagonals_to_1(Theta_init)
+    except ValueError as e:
+        print("Huh - it fails at startup...")
+        raise e
     
     # Used to speed up computation of the A matrix prior to Lasso
     path_Psi: "Contraction order for the A matrix" = np.einsum_path(
@@ -179,6 +185,12 @@ def scBiGLasso(
                     print(f"Early convergence on iteration {tau}!")
                 break
             old_convergence_checks = old_convergence_checks[1:]
-    Psi = scale_diagonals_to_1(LASSO(np.eye(n), Psi, beta_1 / n))
-    Theta = scale_diagonals_to_1(LASSO(np.eye(p), Theta, beta_2 / p))
+    try:
+        Psi = scale_diagonals_to_1(LASSO(np.eye(n), Psi, beta_1 / n))
+    except ValueError:
+        pass
+    try:
+        Theta = scale_diagonals_to_1(LASSO(np.eye(p), Theta, beta_2 / p))
+    except ValueError:
+        pass
     return Psi, Theta
