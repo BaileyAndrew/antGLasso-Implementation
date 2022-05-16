@@ -91,27 +91,13 @@ def _scBiGLasso_internal(
     
     V: "Eigenvectors of Theta"
     v: "Diagonal eigenvalues of Theta"
-    #print("theta")
-    #print(Theta)
     v, V = np.linalg.eigh(Theta)
     v = v.reshape((1, p))
-    #print("evals")
-    #print(U, u, V, v)
     A: "Used for the A_\i\i in paper" = _calculate_A(U, u, v)
     
-    #return _full_LASSO(A, A + T - np.diag(np.diag(T)), beta), 1
-    #print("AHH")
-    #print("rank")
-    #print(np.linalg.matrix_rank(A))
-    #print("A")
-    #print(A)
     T_nodiag = T - np.diag(np.diag(T))
     Psi = np.linalg.lstsq(A, A - p * T_nodiag, rcond=None)[0]
     Psi = scale_diagonals_to_1(Psi)
-    #_Psi = scale_diagonals_to_1(LASSO(np.eye(n), _Psi, beta / n))
-    #print(Psi)
-    #return Psi, 1
-    #print(_Psi)
     return (Psi + Psi.T) / 2, 1
     
     for i in range(0, n):
