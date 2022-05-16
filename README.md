@@ -20,7 +20,7 @@ My computer:
 
 ## Matrix-Variate Data Generation
 
-Generating 100 samples of (100, 100) matrix variate data from a KS-structured Matrix Normal takes ~0.75 seconds.
+Generating 100 samples of (100, 100) matrix variate data from a KS-structured Matrix Normal takes ~0.75-1 seconds.
 The number of samples does affect this - about 30% of the runtime is due to there being 100 samples.
 
 _This has been well-optimized but still has avenues for improvement.  I did try batching, i.e. generate (5, 100, 100, 100) samples
@@ -33,7 +33,7 @@ matrix multiplication.  If low number of samples, nearly all of the runtime is f
 
 ## Matrix Decomposition
 
-Given 100 samples of (100, 100) matrix variate data, calculating Psi/Theta takes ~0.9 seconds.  The number of samples is
+Given 100 samples of (100, 100) matrix variate data, calculating Psi/Theta takes ~0.9-1 seconds.  The number of samples is
 responsible for about 10% of this (from calculating the mean sample) - unless there is a very small amount of samples,
 in which case the algorithm often takes a lot longer to converge (~3 seconds).
 
