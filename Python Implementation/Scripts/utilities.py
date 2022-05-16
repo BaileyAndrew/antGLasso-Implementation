@@ -80,42 +80,6 @@ def kron_sum_diag(
         return A + B
     else:
         return (A + B)[0, ...]
-
-def LASSO_cvxpy(
-    X: "Coefficient matrix",
-    y: "Affine vector",
-    lmbda: "L1 penalty",
-    **kwargs: "Does nothing"
-):
-    """
-    Lasso regression
-    Much of this code taken from CVXPY tutorials
-    """
-    _, n = X.shape
-    beta = cp.Variable(n)
-    
-    def loss_fn(X, y, beta):
-        return cp.norm2(X @ beta - y)**2
-
-    def regularizer(beta):
-        return cp.norm1(beta)
-
-    def objective_fn(X, Y, beta, lambd):
-        return loss_fn(X, y, beta) + lambd * regularizer(beta)
-
-    def mse(X, Y, beta):
-        return (1.0 / X.shape[0]) * loss_fn(X, y, beta).value
-    
-    problem = cp.Problem(cp.Minimize(objective_fn(X, y, beta, lmbda)))
-    problem.solve(solver='ECOS', warm_start=True)
-    return beta.value
-
-def matrix_lasso(Psi, A, Offs, beta):
-    def loss_fn(_A, _Offs, _Psi):
-        return cp.norm2(_A @ _Psi - _Offs)**2
-    def regularizer(_Psi):
-        return cp.norm1(_Psi)
-    return loss_fn(A, Offs, Psi) + beta * regularizer(Psi)
     
 def LASSO_sklearn(
     X: "Coefficient matrix",
@@ -129,24 +93,6 @@ def LASSO_sklearn(
     # pre-creating these with warm_start for each row does not
     # improve speed unfortunately.
     lasso = linear_model.Lasso(alpha=lmbda, fit_intercept=False, **kwargs)
-    try:
-        return lasso.fit(X, y).coef_
-    except ValueError as e:
-        print(X)
-        raise e
-        
-def LASSO_celer(
-    X: "Coefficient matrix",
-    y: "Affine vector",
-    lmbda: "L1 penalty",
-    **kwargs: "To pass to sklearn"
-):
-    """
-    Lasso regression using scipy
-    """
-    # pre-creating these with warm_start for each row does not
-    # improve speed unfortunately.
-    lasso = lasso_celer(alpha=lmbda, fit_intercept=False, **kwargs)
     try:
         return lasso.fit(X, y).coef_
     except ValueError as e:
@@ -263,10 +209,10 @@ def scale_diagonals_to_1(Psi):
     puts negatives on the diagonals, but if we just ignore
     them then everything seems to work out.
     """
-    diags = np.diag(Psi)
+    diags = np.diag(Psi).copy()
     if 0 in diags:
-        print(Psi)
-        raise Exception()
+        print('0 in diag, kinda scary...')
+    diags[diags == 0] = 1
     diags = np.abs(diags)
     D = np.diag(1 / np.sqrt(diags))
     return D @ Psi @ D
