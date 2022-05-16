@@ -33,22 +33,16 @@ matrix multiplication.  If low number of samples, nearly all of the runtime is f
 
 ## Matrix Decomposition
 
-Given 100 samples of (100, 100) matrix variate data, calculating Psi/Theta takes ~0.9-1 seconds.  The number of samples is
-responsible for about 10% of this (from calculating the mean sample).  It used to be that a small number of samples
-would take much longer, because it would take more iterations to converge.  However, I managed to reformulate the problem
-such that there is only ever one Lasso call per matrix (rather than one call per matrix per row per iteration), i.e. 2
-calls overall.  The large sample case remains the same timewise, but the small sample case now only takes ~1 second as well,
-because the iterations are much faster.  Basically, less lassos cause longer convergence but with faster iterations -
-for large samples this balances out, for small samples they already had long convergence so this actually drastically
-improves them.
+I did some mild math tricks to do a whole-matrix lasso instead of a row-by-row lasso, which was a major speedup.  This results
+in a single lasso call per flip-flop.  I then removed the lasso per flip-flop, having only a single lasso at the very end.
+This means that we're finding the dense solution's fixed point, and then lassoing it (as opposed to approaching the fixed point
+with the lasso solution).  An effect of this is that it seems there is more variance in the quality of the outputs.
+It typically runs in a fraction of a second (0.3-0.6), but if you're unlucky it may run in a little
+over a second (1.3) if it takes many iterations to solve.
 
-Currently, ~40% of the runtime comes from calculating eigenvalues/eigenvectors, ~20% from calculating the A matrix, and
-~40% from `np.linalg.lstsq`-ing an equation to find the pseudoinverse of A.  Perhaps I could improve the calculation of
-the A matrix (although I've already done a lot there), but the rest are unlikely to be improvable b/c they are fairly
-fundamental operations.  Any future improvements would likely need to come from improving the math of the problem rather than
-the implementation of the math.
-
-I had to assume that the diagonals of Psi/Theta were 1 to achieve this speedup.  Since diagonals can't be determined
-by the algorithm, that's not a big deal.  It however does prevent us from re-computing the eigenvalues/vectors every
-loop in the update of Psi/Theta.  This is not a big deal, large-sample code runs faster if we don't (I never tested
-small-samples though, and it could plausibly affect it then since small-samples seem to take many iterations).
+**Possible improvements?**: This has been very heavily optimized - I'm even directly calling LAPACK (Fortran) functions in some places!
+There are two `np.einsum` calls that I might try to express in terms of LAPACK operations (since the matrices are often symmetric,
+LAPACK can be an order of magnitude faster for some computations by leveraging this).  Other than that, all the runtime takes place
+in the calculation of the eigenvalues/vectors.  I implemented this in LAPACK but had no gain (so I reverted to scipy).  If LAPACK
+can't make it faster, then there's no way I can ;)  So other than the `np.einsum`s, the only real improvements could be improvements
+to the algorithm itself rather than the implementation of the algorithm.  That's a bit beyond my capabilities.
