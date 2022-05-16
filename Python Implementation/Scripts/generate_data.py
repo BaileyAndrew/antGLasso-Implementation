@@ -101,7 +101,7 @@ def generate_sparse_posdef_matrix(
     Psi: "Sparse posdef matrix - the output"
     
     p: "Bernoulli probability to achieve desired expected value of psi nonzeros"
-    p = np.sqrt(expected_nonzero / (n**2 - n))
+    p = np.sqrt(expected_nonzero / (n**2))# - n))
     
     # Note that in the calculation of D, we make use of Numpy broadcasting.
     # It's the same as hadamard-producting with np.eye(n) tiled `size` times

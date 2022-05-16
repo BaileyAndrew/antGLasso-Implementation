@@ -112,7 +112,7 @@ def scBiGLasso(
     beta_2: "Theta's L1 penalty",
     Psi_init: "n by n initial estimate for Psi" = None,
     Theta_init: "p by p initial estimate for Theta" = None,
-    lasso_every_loop: bool = False,
+    lasso_every_loop: bool = True,
     verbose: bool = False
 ) -> ("Psi", "Theta"):
     # If m=1 (only one observation), we allow p by n matrix as input

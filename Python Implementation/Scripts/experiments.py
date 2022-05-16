@@ -100,7 +100,10 @@ def create_precision_recall_curves(
     p: "Size of Psi/Theta",
     indices_to_highlight: "List of indices of betas to highlight on plot",
     attempts: "Number of times to average over" = 100,
-    verbose: bool = False
+    verbose: bool = False,
+    expected_nonzero_psi = None,
+    expected_nonzero_theta = None,
+    lasso_every_loop = True,
 ):
     """
     Given a list of L1 penalties, calculate the 
@@ -114,10 +117,19 @@ def create_precision_recall_curves(
         'expected_nonzero_psi': n**2 / 5,
         'expected_nonzero_theta': p**2 / 5
     }
+    if expected_nonzero_psi is not None:
+        kwargs_gen['expected_nonzero_psi'] = expected_nonzero_psi
+    else:
+        expected_nonzero_psi = kwargs_gen['expected_nonzero_psi']
+    if expected_nonzero_theta is not None:
+        kwargs_gen['expected_nonzero_theta'] = expected_nonzero_theta
+    else:
+        expected_nonzero_theta = kwargs_gen['expected_nonzero_theta']
+        
     kwargs_lasso = {
         'N': 100,
         'eps': 10e-3,
-        'lasso_every_loop': True
+        'lasso_every_loop': lasso_every_loop
     }
 
     Psi_cms, Theta_cms = get_cms_for_betas(
@@ -128,10 +140,14 @@ def create_precision_recall_curves(
         verbose=verbose
     )
     
+    psi_density = expected_nonzero_psi / (2*n*p)
+    theta_density = expected_nonzero_theta / (2*n*p)
+    
     return make_cm_plots(
         betas_to_try,
         Psi_cms,
         Theta_cms,
         indices_to_highlight,
-        f"Precision-Recall Plots for {n}x{n} Psi/Theta as L1 Penalty β Varies ({m} samples)"
+        f"Precision-Recall Plots for {n}x{n} Psi/Theta as L1 Penalty β Varies "
+        + f"({m} samples, {psi_density:.0%}/{theta_density:.0%} Psi/Theta densities)"
     )
