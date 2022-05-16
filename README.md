@@ -34,11 +34,19 @@ matrix multiplication.  If low number of samples, nearly all of the runtime is f
 ## Matrix Decomposition
 
 Given 100 samples of (100, 100) matrix variate data, calculating Psi/Theta takes ~0.9-1 seconds.  The number of samples is
-responsible for about 10% of this (from calculating the mean sample) - unless there is a very small amount of samples,
-in which case the algorithm often takes a lot longer to converge (~3 seconds).
+responsible for about 10% of this (from calculating the mean sample).  It used to be that a small number of samples
+would take much longer, because it would take more iterations to converge.  However, I managed to reformulate the problem
+such that there is only ever one Lasso call per matrix (rather than one call per matrix per row per iteration), i.e. 2
+calls overall.  The large sample case remains the same timewise, but the small sample case now only takes ~1 second as well,
+because the iterations are much faster.  Basically, less lassos cause longer convergence but with faster iterations -
+for large samples this balances out, for small samples they already had long convergence so this actually drastically
+improves them.
 
-Currently, ~85% of the runtime takes place inside `scikit-learn`'s Lasso implementation, and I'm unlikely to be able to do anything
-about that.  I did try `cvxpy`'s implementation, which was notably slower.  The rest is in the deletion of rows from A.
+Currently, ~40% of the runtime comes from calculating eigenvalues/eigenvectors, ~20% from calculating the A matrix, and
+~40% from `np.linalg.lstsq`-ing an equation to find the pseudoinverse of A.  Perhaps I could improve the calculation of
+the A matrix (although I've already done a lot there), but the rest are unlikely to be improvable b/c they are fairly
+fundamental operations.  Any future improvements would likely need to come from improving the math of the problem rather than
+the implementation of the math.
 
 I had to assume that the diagonals of Psi/Theta were 1 to achieve this speedup.  Since diagonals can't be determined
 by the algorithm, that's not a big deal.  It however does prevent us from re-computing the eigenvalues/vectors every
