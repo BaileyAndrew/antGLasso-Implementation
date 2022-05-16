@@ -3,13 +3,38 @@ This script calculates scBiGLasso
 """
 
 import numpy as np
+import cvxpy as cp
 from sklearn.exceptions import ConvergenceWarning
-from Scripts.utilities import LASSO
+from Scripts.utilities import LASSO, matrix_lasso, scale_diagonals_to_1
 import warnings
 
 # Note: in matrix variable name subscripts:
 # 'sisj' will represent '\i\j'
 # i.e. s = \
+
+def _full_LASSO(
+    A: "n x n matrix",
+    Offs: "n x n matrix",
+    beta: "L1 penalty"
+):
+    """
+    Finds minimal solution of A@Psi - Offs = 0 for Psi,
+    subject to Psi being symmetric, where minimal is
+    the closest L2-wise Psi' to the true solution Psi subject
+    to an L1 penalty
+    """
+    # Could also set PSD=True but I have a hunch that'd take longer,
+    # plus there're no PSD-enforcing checks in the original algorithm
+    # either, just symmetry-enforcing operations.
+    Psi = cp.Variable(A.shape, symmetric=True)
+    constraints = [cp.diag(Psi) == 1]
+    problem = cp.Problem(
+        cp.Minimize(
+            matrix_lasso(Psi, A, Offs, beta)
+        )
+    )
+    problem.solve(solver='SCS', warm_start=True)
+    return Psi.value
 
 def _calculate_A(
     U: "Eigenvectors of Psi",
@@ -71,6 +96,17 @@ def _scBiGLasso_internal(
     
     A: "Used for the A_\i\i in paper" = _calculate_A(U, u, v)
     
+    #return _full_LASSO(A, A + T - np.diag(np.diag(T)), beta), 1
+    #print("AHH")
+    T_nodiag = T - np.diag(np.diag(T))
+    _Psi = np.linalg.lstsq(A, A - p * T_nodiag)[0]
+    #print(_Psi)
+    _Psi = scale_diagonals_to_1(LASSO(np.eye(n), _Psi, beta / n))
+    #print(Psi)
+    #return Psi, 1
+    #print(_Psi)
+    return _Psi, 1
+    
     for i in range(0, n):
         # Loop through rows of Psi
         psi_ii = out_Psi[i, i]
@@ -83,6 +119,8 @@ def _scBiGLasso_internal(
         # But sklearn minimizes A @ psi - p * t
         # Hence the factor of -p we apply.
         psi_isi_update = LASSO(A_sisi, -p * t_isi, beta)
+        #print(psi_isi_update)
+        #print(np.linalg.lstsq(A_sisi, -p * t_isi)[0])
         
         # Update row
         out_Psi[i, :i] = psi_isi_update[:i]
@@ -97,6 +135,7 @@ def _scBiGLasso_internal(
         log_det: "log|kronsum(Psi, Theta)|" = np.log(u + v).sum()
     else:
         log_det: "dummy value, not used" = 0
+    print(out_Psi)
     return out_Psi, log_det
 
 def scBiGLasso(
@@ -127,13 +166,8 @@ def scBiGLasso(
         
     # Now we make sure that the diagonals are 1, since it allows
     # a simplification later on in the algorithm
-    D_psi = np.diag(1 / np.sqrt(np.diag(Psi_init)))
-    Psi_init = D_psi @ Psi_init @ D_psi
-    D_theta = np.diag(1 / np.sqrt(np.diag(Theta_init)))
-    Theta_init = D_theta @ Theta_init @ D_theta
-    
-    Psi = Psi_init
-    Theta = Theta_init
+    Psi = scale_diagonals_to_1(Psi_init)
+    Theta = scale_diagonals_to_1(Theta_init)
     
     # Used to speed up computation of the A matrix prior to Lasso
     path_Psi: "Contraction order for the A matrix" = np.einsum_path(

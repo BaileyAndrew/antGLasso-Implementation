@@ -3,7 +3,7 @@ Contains helper functions
 """
 
 import numpy as np
-#import cvxpy as cp
+import cvxpy as cp
 from sklearn import linear_model
 #from celer import Lasso as lasso_celer
 
@@ -109,6 +109,13 @@ def LASSO_cvxpy(
     problem = cp.Problem(cp.Minimize(objective_fn(X, y, beta, lmbda)))
     problem.solve(solver='ECOS', warm_start=True)
     return beta.value
+
+def matrix_lasso(Psi, A, Offs, beta):
+    def loss_fn(_A, _Offs, _Psi):
+        return cp.norm2(_A @ _Psi - _Offs)**2
+    def regularizer(_Psi):
+        return cp.norm1(_Psi)
+    return loss_fn(A, Offs, Psi) + beta * regularizer(Psi)
     
 def LASSO_sklearn(
     X: "Coefficient matrix",
@@ -245,3 +252,11 @@ def generate_confusion_matrices(
         [TP, FP],
         [FN, TN]
     ])
+
+def scale_diagonals_to_1(Psi):
+    """
+    Scales rows and columns equally such that
+    the diagonals of the input are all equal to 1.
+    """
+    D = np.diag(1 / np.sqrt(np.diag(Psi)))
+    return D @ Psi @ D
