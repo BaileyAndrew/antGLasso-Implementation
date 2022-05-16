@@ -257,6 +257,14 @@ def scale_diagonals_to_1(Psi):
     """
     Scales rows and columns equally such that
     the diagonals of the input are all equal to 1.
+    
+    Note: an interesting phenomenon is that sometimes
+    the lstsq solver that generates Psi 'breaks' and
+    puts negatives on the diagonals, but if we just ignore
+    them then everything seems to work out.
     """
-    D = np.diag(1 / np.sqrt(np.diag(Psi)))
+    diags = np.diag(Psi)
+    #signs = np.sign(diags)
+    diags = np.abs(diags)
+    D = np.diag(1 / np.sqrt(diags))
     return D @ Psi @ D

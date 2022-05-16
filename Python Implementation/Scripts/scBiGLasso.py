@@ -91,21 +91,28 @@ def _scBiGLasso_internal(
     
     V: "Eigenvectors of Theta"
     v: "Diagonal eigenvalues of Theta"
+    #print("theta")
+    #print(Theta)
     v, V = np.linalg.eigh(Theta)
     v = v.reshape((1, p))
-    
+    #print("evals")
+    #print(U, u, V, v)
     A: "Used for the A_\i\i in paper" = _calculate_A(U, u, v)
     
     #return _full_LASSO(A, A + T - np.diag(np.diag(T)), beta), 1
     #print("AHH")
+    #print("rank")
+    #print(np.linalg.matrix_rank(A))
+    #print("A")
+    #print(A)
     T_nodiag = T - np.diag(np.diag(T))
-    _Psi = np.linalg.lstsq(A, A - p * T_nodiag)[0]
-    #print(_Psi)
-    _Psi = scale_diagonals_to_1(LASSO(np.eye(n), _Psi, beta / n))
+    Psi = np.linalg.lstsq(A, A - p * T_nodiag, rcond=None)[0]
+    Psi = scale_diagonals_to_1(Psi)
+    #_Psi = scale_diagonals_to_1(LASSO(np.eye(n), _Psi, beta / n))
     #print(Psi)
     #return Psi, 1
     #print(_Psi)
-    return _Psi, 1
+    return (Psi + Psi.T) / 2, 1
     
     for i in range(0, n):
         # Loop through rows of Psi
@@ -226,5 +233,6 @@ def scBiGLasso(
                     print(f"Early convergence on iteration {tau}!")
                 break
             old_convergence_checks = old_convergence_checks[1:]
-    
+    Psi = scale_diagonals_to_1(LASSO(np.eye(n), Psi, beta_1 / n))
+    Theta = scale_diagonals_to_1(LASSO(np.eye(p), Theta, beta_2 / p))
     return Psi, Theta
