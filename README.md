@@ -39,7 +39,7 @@ This means that we're finding the dense solution's fixed point, and then lassoin
 with the lasso solution).  It typically runs in a fraction of a second (0.3-0.6), but if you're unlucky it may run in a little
 over a second (1.3) if it takes many iterations to solve.
 
-Possible improvements?: This has been very heavily optimized - I'm even directly calling LAPACK fortran functions in some places!
+**Possible improvements?**: This has been very heavily optimized - I'm even directly calling LAPACK fortran functions in some places!
 There are two `np.einsum` calls that I might try to express in terms of LAPACK operations (since the matrices are often symmetric,
 LAPACK can be an order of magnitude faster for some computations by leveraging this).  Other than that, all the runtime takes place
 in the calculation of the eigenvalues/vectors.  I implemented this in LAPACK but had no gain (so I reverted to scipy).  If LAPACK
