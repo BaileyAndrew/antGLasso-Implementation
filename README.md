@@ -38,7 +38,9 @@ responsible for about 10% of this (from calculating the mean sample).  It used t
 would take much longer, because it would take more iterations to converge.  However, I managed to reformulate the problem
 such that there is only ever one Lasso call per matrix (rather than one call per matrix per row per iteration), i.e. 2
 calls overall.  The large sample case remains the same timewise, but the small sample case now only takes ~1 second as well,
-because the iterations are much faster.
+because the iterations are much faster.  Basically, less lassos cause longer convergence but with faster iterations -
+for large samples this balances out, for small samples they already had long convergence so this actually drastically
+improves them.
 
 Currently, ~40% of the runtime comes from calculating eigenvalues/eigenvectors, ~20% from calculating the A matrix, and
 ~40% from `np.linalg.lstsq`-ing an equation to find the pseudoinverse of A.  Perhaps I could improve the calculation of
