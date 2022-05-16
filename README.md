@@ -36,7 +36,8 @@ matrix multiplication.  If low number of samples, nearly all of the runtime is f
 I did some mild math tricks to do a whole-matrix lasso instead of a row-by-row lasso, which was a major speedup.  This results
 in a single lasso call per flip-flop.  I then removed the lasso per flip-flop, having only a single lasso at the very end.
 This means that we're finding the dense solution's fixed point, and then lassoing it (as opposed to approaching the fixed point
-with the lasso solution).  It typically runs in a fraction of a second (0.3-0.6), but if you're unlucky it may run in a little
+with the lasso solution).  An effect of this is that it seems there is more variance in the quality of the outputs.
+It typically runs in a fraction of a second (0.3-0.6), but if you're unlucky it may run in a little
 over a second (1.3) if it takes many iterations to solve.
 
 **Possible improvements?**: This has been very heavily optimized - I'm even directly calling LAPACK (Fortran) functions in some places!
