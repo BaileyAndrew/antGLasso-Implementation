@@ -213,3 +213,34 @@ def scale_diagonals_to_1(Psi):
     diags = np.abs(diags)
     D = np.diag(1 / np.sqrt(diags))
     return D @ Psi @ D
+
+def crush_rows(X: "(n, n) Matrix") -> "(n-1, n) Matrix":
+    """
+    'Crush' the rows of Psi, so that the diagonals disappear, i.e.:
+     _ a b
+     c _ d
+     e f _
+    crushed becomes:
+      a b
+      c d
+      e f
+    """
+    x = X.shape[0]
+    s0, s1 = X.strides
+    return np.lib.stride_tricks.as_strided(
+        X.ravel()[1:],
+        shape=(x - 1, x),
+        strides=(s0 + s1, s1)
+    ).reshape(x, -1)
+
+def uncrush_rows(
+    X: "(n-1, n) Matrix",
+    d: "scalar, value to fill diagonals with" = 1
+) -> "(n, n) Matrix":
+    """
+    The inverse operation of `crush_rows`
+    """
+    n = X.shape[1]
+    out = d * np.eye(n)
+    np.place(out, out == 0, X)
+    return out

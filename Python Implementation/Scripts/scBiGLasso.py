@@ -5,7 +5,7 @@ This script calculates scBiGLasso
 import numpy as np
 import cvxpy as cp
 from sklearn.exceptions import ConvergenceWarning
-from Scripts.utilities import LASSO, scale_diagonals_to_1
+from Scripts.utilities import LASSO, scale_diagonals_to_1, crush_rows, uncrush_rows
 from scipy.linalg import eigh
 import scipy.linalg.lapack as lapack
 import warnings
@@ -82,25 +82,18 @@ def _scBiGLasso_internal(
     # This is the same as np.linalg.lstsq but *much* faster
     _, _, Psi, _ = lapack.dsysv(A, A - p * T_nodiag)
     
-    # It is very often positive definite, which would make a 6x speedup with
-    # this line of code (just a speedup of this computation, not overall):
-    #_, Psi, _ = lapack.dposv(A, A - p * T_nodiag)
-    # However the time it takes to check the matrix rank rules out using it :(
-    # because even though it's almost always posdef, it's sometimes semidef.
-    
     if lasso_every_loop:
-        # Idea to avoid 0 diagonals: 'crush' the rows of Psi,
-        # so that the diagonals disappear, i.e.:
-        # _ a b
-        # c _ d
-        # e f _
-        # crushed becomes:
-        # a b
-        # c d
-        # e f
-        # And then LASSO on this!
+        # This doesn't work for some reason?  It seems it won't find
+        # the correct solution if beta ~ 0 either...
+        #Psi = scale_diagonals_to_1(Psi)
+        #Psi_crushed = crush_rows(Psi)
+        #Psi_crushed = LASSO(np.eye(n), Psi_crushed, beta / n)
+        #Psi = uncrush_rows(Psi_crushed)
+        
+        # So we have to add to diagonal to ensure no diagonals are zero
         Psi = LASSO(np.eye(n), Psi, beta / n)
-        Psi += 0.001 * np.eye(n) # prevent 0 diagonals
+        Psi += 0.001 * np.eye(n)
+        
     Psi = scale_diagonals_to_1(Psi)
         
     if verbose:
