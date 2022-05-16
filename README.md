@@ -4,6 +4,10 @@ A Python implementation of the Scalable Bigraphical Lasso algorithm.  Implementa
 Note that I do not currently implement the nonparanormal sceptic layer,
 although I will add that at some point so that I can test this on actual count data!
 
+Note 2: I implemented the "Analytic Bigraphical Lasso" algorithm late at night so I haven't updated the readme
+to reflect its existence other than this message!  You can find it in the folder `Python Implementation/Scripts/scBiGLasso.py` -
+it's the last function in that file, `analyticBiGLasso`.
+
 # Observations
 
 I'm still making some performance improvements so I have not focused too much on actually using it.  However, I have noticed that,
