@@ -211,8 +211,7 @@ def scale_diagonals_to_1(Psi):
     """
     diags = np.diag(Psi).copy()
     if 0 in diags:
-        print('0 in diag, kinda scary...')
-    diags[diags == 0] = 1
+        raise ValueError("Diagonals should not contain zeros")
     diags = np.abs(diags)
     D = np.diag(1 / np.sqrt(diags))
     return D @ Psi @ D

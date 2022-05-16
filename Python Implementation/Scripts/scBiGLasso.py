@@ -5,37 +5,13 @@ This script calculates scBiGLasso
 import numpy as np
 import cvxpy as cp
 from sklearn.exceptions import ConvergenceWarning
-from Scripts.utilities import LASSO, matrix_lasso, scale_diagonals_to_1
+from Scripts.utilities import LASSO, scale_diagonals_to_1
 from scipy.linalg import pinvh
 import warnings
 
 # Note: in matrix variable name subscripts:
 # 'sisj' will represent '\i\j'
 # i.e. s = \
-
-def _full_LASSO(
-    A: "n x n matrix",
-    Offs: "n x n matrix",
-    beta: "L1 penalty"
-):
-    """
-    Finds minimal solution of A@Psi - Offs = 0 for Psi,
-    subject to Psi being symmetric, where minimal is
-    the closest L2-wise Psi' to the true solution Psi subject
-    to an L1 penalty
-    """
-    # Could also set PSD=True but I have a hunch that'd take longer,
-    # plus there're no PSD-enforcing checks in the original algorithm
-    # either, just symmetry-enforcing operations.
-    Psi = cp.Variable(A.shape, symmetric=True)
-    constraints = [cp.diag(Psi) == 1]
-    problem = cp.Problem(
-        cp.Minimize(
-            matrix_lasso(Psi, A, Offs, beta)
-        )
-    )
-    problem.solve(solver='SCS', warm_start=True)
-    return Psi.value
 
 def _calculate_A(
     U: "Eigenvectors of Psi",
@@ -98,8 +74,14 @@ def _scBiGLasso_internal(
     T_nodiag = T - np.diag(np.diag(T))
     # `pinvh` is ever-so-slightly faster than lstsq solution
     #Psi = np.linalg.lstsq(A, A - p * T_nodiag, rcond=None)[0]
-    Psi = pinvh(A) @ (A - p * T_nodiag)
-    Psi = scale_diagonals_to_1(Psi)
+    pseudo_inv_A = pinvh(A)
+    Psi = pseudo_inv_A @ (A - p * T_nodiag)
+    try:
+        Psi = scale_diagonals_to_1(Psi)
+    except ValueError as e:
+        print(A)
+        print(pseudo_inv_A)
+        raise ValueError(A)
         
     if verbose:
         u, U = np.linalg.eigh(Psi)
