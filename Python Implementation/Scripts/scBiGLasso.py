@@ -78,10 +78,11 @@ def _scBiGLasso_internal(
     A: "Used for the A_\i\i in paper" = _calculate_A(U, u, v)
     
     # Directly rely on lapack bindings to take advantage of A's symmetry!
+    # This is the same as np.linalg.lstsq but *much* faster
     _, _, Psi, _ = lapack.dsysv(A, A - p * T_nodiag)
     
     # It is very often positive definite, which would make a 6x speedup with
-    # this line of code:
+    # this line of code (just a speedup of this computation, not overall):
     #_, Psi, _ = lapack.dposv(A, A - p * T_nodiag)
     # However the time it takes to check the matrix rank rules out using it :(
     # because even though it's almost always posdef, it's sometimes semidef.
@@ -190,7 +191,7 @@ def scBiGLasso(
                     print(f"Early convergence on iteration {tau}!")
                 break
             old_convergence_checks = old_convergence_checks[1:]
-            
+       
     Psi = scale_diagonals_to_1(LASSO(np.eye(n), Psi, beta_1 / n))
     Theta = scale_diagonals_to_1(LASSO(np.eye(p), Theta, beta_2 / p))
     
