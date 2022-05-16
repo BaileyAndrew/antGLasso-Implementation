@@ -89,6 +89,16 @@ def _scBiGLasso_internal(
     # because even though it's almost always posdef, it's sometimes semidef.
     
     if lasso_every_loop:
+        # Idea to avoid 0 diagonals: 'crush' the rows of Psi,
+        # so that the diagonals disappear, i.e.:
+        # _ a b
+        # c _ d
+        # e f _
+        # crushed becomes:
+        # a b
+        # c d
+        # e f
+        # And then LASSO on this!
         Psi = LASSO(np.eye(n), Psi, beta / n)
         Psi += 0.001 * np.eye(n) # prevent 0 diagonals
     Psi = scale_diagonals_to_1(Psi)
