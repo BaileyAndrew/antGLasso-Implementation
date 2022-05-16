@@ -6,6 +6,7 @@ import numpy as np
 import cvxpy as cp
 from sklearn.exceptions import ConvergenceWarning
 from Scripts.utilities import LASSO, matrix_lasso, scale_diagonals_to_1
+from scipy.linalg import pinvh
 import warnings
 
 # Note: in matrix variable name subscripts:
@@ -80,13 +81,12 @@ def _scBiGLasso_internal(
     path: "Contraction order for A's einsum calculation" = 'optimal',
     verbose: bool = False
 ):
-    out_Psi = Psi.copy()
     n, _ = Psi.shape
     p, _ = Theta.shape
     
     U: "Eigenvectors of Psi"
     u: "Diagonal eigenvalues of Psi"
-    u, U = np.linalg.eigh(out_Psi)
+    u, U = np.linalg.eigh(Psi)
     u = u.reshape((n, 1))
     
     V: "Eigenvectors of Theta"
@@ -96,40 +96,18 @@ def _scBiGLasso_internal(
     A: "Used for the A_\i\i in paper" = _calculate_A(U, u, v)
     
     T_nodiag = T - np.diag(np.diag(T))
-    Psi = np.linalg.lstsq(A, A - p * T_nodiag, rcond=None)[0]
+    # `pinvh` is ever-so-slightly faster than lstsq solution
+    #Psi = np.linalg.lstsq(A, A - p * T_nodiag, rcond=None)[0]
+    Psi = pinvh(A) @ (A - p * T_nodiag)
     Psi = scale_diagonals_to_1(Psi)
-    return (Psi + Psi.T) / 2, 1
-    
-    for i in range(0, n):
-        # Loop through rows of Psi
-        psi_ii = out_Psi[i, i]
-
-        # Estimate new psi_isi
-        A_sisi: "A_\i\i as in paper" = np.delete(np.delete(A, i, axis=0), i, axis=1)
-        t_isi = np.delete(T, i, axis=1)[i, :]
-        
-        # Note that the paper has A @ psi + p * t = 0
-        # But sklearn minimizes A @ psi - p * t
-        # Hence the factor of -p we apply.
-        psi_isi_update = LASSO(A_sisi, -p * t_isi, beta)
-        #print(psi_isi_update)
-        #print(np.linalg.lstsq(A_sisi, -p * t_isi)[0])
-        
-        # Update row
-        out_Psi[i, :i] = psi_isi_update[:i]
-        out_Psi[i, (i+1):] = psi_isi_update[i:]
-        
-        # It's symmetric, so update column too
-        out_Psi[:, i] = out_Psi[i, :]
         
     if verbose:
-        u, U = np.linalg.eigh(out_Psi)
+        u, U = np.linalg.eigh(Psi)
         u = u.reshape((n, 1))
         log_det: "log|kronsum(Psi, Theta)|" = np.log(u + v).sum()
     else:
         log_det: "dummy value, not used" = 0
-    print(out_Psi)
-    return out_Psi, log_det
+    return (Psi + Psi.T) / 2, log_det
 
 def scBiGLasso(
     N: "Maximum iteration number",

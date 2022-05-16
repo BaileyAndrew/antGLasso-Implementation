@@ -264,6 +264,9 @@ def scale_diagonals_to_1(Psi):
     them then everything seems to work out.
     """
     diags = np.diag(Psi)
+    if 0 in diags:
+        print(Psi)
+        raise Exception()
     diags = np.abs(diags)
     D = np.diag(1 / np.sqrt(diags))
     return D @ Psi @ D
