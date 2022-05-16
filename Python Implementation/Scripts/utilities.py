@@ -210,8 +210,6 @@ def scale_diagonals_to_1(Psi):
     them then everything seems to work out.
     """
     diags = np.diag(Psi).copy()
-    if 0 in diags:
-        raise ValueError("Diagonals should not contain zeros")
     diags = np.abs(diags)
     D = np.diag(1 / np.sqrt(diags))
     return D @ Psi @ D

@@ -6,7 +6,7 @@ import numpy as np
 import cvxpy as cp
 from sklearn.exceptions import ConvergenceWarning
 from Scripts.utilities import LASSO, scale_diagonals_to_1
-from scipy.linalg import pinvh
+from scipy.linalg import eigh
 import scipy.linalg.lapack as lapack
 import warnings
 
@@ -44,7 +44,12 @@ def _calculate_A(
     # 1 here b/c it allows us to gain a major speedup.
     B = (1 / (1 + v)).squeeze()
     C = 1 / (u + v)
-    return np.einsum("l, kl, ak, bk -> ab", B, C, U, U, optimize=path)
+    A =  np.einsum("l, kl, ak, bk -> ab", B, C, U, U, optimize=path)
+    
+    # A is theoretically symmetric, floating point may prevent this
+    # so let's force it - because some lapack routines are faster
+    # if it's symmetric
+    return (A + A.T)/2
     
 # Note: for some reason, LASSO_sklearn can fail to converge even though
 # LASSO_cvxpy will converge - but LASSO_sklearn's results are better in
@@ -53,7 +58,7 @@ warnings.filterwarnings("ignore", category=ConvergenceWarning)
 def _scBiGLasso_internal(
     Psi: "Previous estimate of precision matrix",
     Theta: "Other precision matrix [taken as constant]",
-    T: "Estimated covariance matrix",
+    T_nodiag: "Estimated covariance matrix with diagonals set to zero",
     beta: "L1 penalty",
     path: "Contraction order for A's einsum calculation" = 'optimal',
     verbose: bool = False
@@ -63,27 +68,25 @@ def _scBiGLasso_internal(
     
     U: "Eigenvectors of Psi"
     u: "Diagonal eigenvalues of Psi"
-    u, U = np.linalg.eigh(Psi)
+    u, U = np.linalg.eigh(Psi) # numpy faster than scipy here
     u = u.reshape((n, 1))
     
-    V: "Eigenvectors of Theta"
+    V: "Eigenvectors of Theta, not computed"
     v: "Diagonal eigenvalues of Theta"
-    v, V = np.linalg.eigh(Theta)
+    v = eigh(Theta, eigvals_only=True)
     v = v.reshape((1, p))
     A: "Used for the A_\i\i in paper" = _calculate_A(U, u, v)
     
-    T_nodiag = T - np.diag(np.diag(T))
     # Directly rely on lapack bindings to take advantage of A's symmetry!
-    #_, _, Psi, _ = lapack.dsysv(A, A - p * T_nodiag)
-    # But it is 95% of the time positive definite, so we can rely on that.
-    # I'm not sure what will happen if it's positive semidefinite though...
-    _, Psi, _ = lapack.dposv(A, A - p * T_nodiag)
-    try:
-        Psi = scale_diagonals_to_1(Psi)
-    except ValueError as e:
-        print(A)
-        print(pseudo_inv_A)
-        raise ValueError(A)
+    _, _, Psi, _ = lapack.dsysv(A, A - p * T_nodiag)
+    
+    # It is very often positive definite, which would make a 6x speedup with
+    # this line of code:
+    #_, Psi, _ = lapack.dposv(A, A - p * T_nodiag)
+    # However the time it takes to check the matrix rank rules out using it :(
+    # because even though it's almost always posdef, it's sometimes semidef.
+    
+    Psi = scale_diagonals_to_1(Psi)
         
     if verbose:
         u, U = np.linalg.eigh(Psi)
@@ -115,18 +118,20 @@ def scBiGLasso(
     T_theta = np.einsum("mpn, mln -> pl", Ys, Ys) / (m*n)
     
     if Psi_init is None:
-        Psi_init = T_psi
+        Psi_init = T_psi.copy()
     if Theta_init is None:
-        Theta_init = T_theta
+        Theta_init = T_theta.copy()
+        
+    # Code only depends on T without the diagonals, and
+    # we can express nicer matrix equations if we set them
+    # to zero, leading to a speed boost!
+    T_psi -= np.diag(np.diag(T_psi))
+    T_theta -= np.diag(np.diag(T_theta))
         
     # Now we make sure that the diagonals are 1, since it allows
     # a simplification later on in the algorithm
-    try:
-        Psi = scale_diagonals_to_1(Psi_init)
-        Theta = scale_diagonals_to_1(Theta_init)
-    except ValueError as e:
-        print("Huh - it fails at startup...")
-        raise e
+    Psi = scale_diagonals_to_1(Psi_init)
+    Theta = scale_diagonals_to_1(Theta_init)
     
     # Used to speed up computation of the A matrix prior to Lasso
     path_Psi: "Contraction order for the A matrix" = np.einsum_path(
@@ -185,12 +190,8 @@ def scBiGLasso(
                     print(f"Early convergence on iteration {tau}!")
                 break
             old_convergence_checks = old_convergence_checks[1:]
-    try:
-        Psi = scale_diagonals_to_1(LASSO(np.eye(n), Psi, beta_1 / n))
-    except ValueError:
-        pass
-    try:
-        Theta = scale_diagonals_to_1(LASSO(np.eye(p), Theta, beta_2 / p))
-    except ValueError:
-        pass
+            
+    Psi = scale_diagonals_to_1(LASSO(np.eye(n), Psi, beta_1 / n))
+    Theta = scale_diagonals_to_1(LASSO(np.eye(p), Theta, beta_2 / p))
+    
     return Psi, Theta
