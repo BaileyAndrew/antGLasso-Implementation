@@ -6,6 +6,7 @@ import numpy as np
 import cvxpy as cp
 from sklearn.exceptions import ConvergenceWarning
 from Scripts.utilities import LASSO, scale_diagonals_to_1, crush_rows, uncrush_rows
+from Scripts.utilities import kron_sum_diag, tr_p
 from scipy.linalg import eigh
 import scipy.linalg.lapack as lapack
 import warnings
@@ -271,6 +272,12 @@ def analyticBiGLasso(
     lmbda = np.linalg.lstsq(X, ell, rcond=None)[0]
     u = lmbda[:n]
     v = lmbda[n:]
+    
+    # Observation: tr_p[D].inv approximately equal to to n * p * tr_p[D.inv]
+    # Can check that observation with the following code:
+    #print (huh := np.diag(tr_p(np.diag(1 / kron_sum_diag(u, v)), p=p)) / 10000)
+    #print (wuh := 1 / np.diag(tr_p(np.diag(kron_sum_diag(u, v)), p=p)))
+    #print (np.abs(huh - wuh) / huh)
     
     # Reconstruct Psi, Theta
     Psi = U @ np.diag(u) @ U.T
