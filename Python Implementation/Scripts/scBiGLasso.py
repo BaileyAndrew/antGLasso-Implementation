@@ -254,8 +254,8 @@ def analyticBiGLasso(
     T_theta *= n * np.ones(T_theta.shape) + (2*n - 2) * np.eye(T_theta.shape[0])
     
     # Calculate the eigendecomposition
-    ell_psi, U = np.linalg.eig(T_psi)
-    ell_theta, V = np.linalg.eig(T_theta)
+    ell_psi, U = np.linalg.eigh(T_psi)
+    ell_theta, V = np.linalg.eigh(T_theta)
     
     # We're really interested in the reciprocals
     ell_psi = 1 / ell_psi
@@ -268,7 +268,9 @@ def analyticBiGLasso(
     
     # Find eigenvalues
     ell = np.concatenate((ell_psi, ell_theta))
-    lmbda = np.linalg.lstsq(X, ell, rcond=None)[0]
+    # lapack.dsysv is same as np.linalg.lstsq, but faster as
+    # it takes advantage of X being symmetric
+    _, _, lmbda, _ = lapack.dsysv(X, ell)
     u = lmbda[:n]
     v = lmbda[n:]
     
