@@ -244,11 +244,11 @@ def analyticBiGLasso(
     T_psi *= (2*p - 1) * np.ones(T_psi.shape) + p * np.eye(T_psi.shape[0])
     T_theta *= (2*n - 1) * np.ones(T_theta.shape) + n * np.eye(T_theta.shape[0])
     
-    # Calculate the svd
+    # Calculate the eigendecomposition
     ell_psi, U = np.linalg.eig(T_psi)
     ell_theta, V = np.linalg.eig(T_theta)
     
-    # Simpler if we work with the reciprocals
+    # We're really interested in the reciprocals
     ell_psi = 1 / ell_psi
     ell_theta = 1 / ell_theta
     
