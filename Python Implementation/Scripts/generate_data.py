@@ -119,6 +119,8 @@ def generate_sparse_posdef_matrix(
         posdef = wishart
     elif posdef_distr == "InvWishart" or posdef_distr == "Inv Wishart":
         posdef = invwishart
+    else:
+        raise ValueError(f"{posdef_distr} not a valid distribution!")
     Psi = posdef.rvs(n, np.eye(n), size=size) / n * Mask
     Psi /= np.trace(Psi, axis1=1, axis2=2).reshape(size, 1, 1) / n
     
