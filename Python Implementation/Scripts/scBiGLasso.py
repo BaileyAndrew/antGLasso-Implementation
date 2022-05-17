@@ -241,8 +241,17 @@ def analyticBiGLasso(
     T_theta = np.einsum("mpn, mln -> pl", Ys, Ys) / (m*n)
     
     # Hadamard multiply by the K matrices
-    T_psi *= (2*p - 1) * np.ones(T_psi.shape) + p * np.eye(T_psi.shape[0])
-    T_theta *= (2*n - 1) * np.ones(T_theta.shape) + n * np.eye(T_theta.shape[0])
+    # Weirdly enough, these matrices work too??
+    #T_psi *= (2*p - 1) * np.ones(T_psi.shape) + p * np.eye(T_psi.shape[0])
+    #T_theta *= (2*n - 1) * np.ones(T_theta.shape) + n * np.eye(T_theta.shape[0])
+    
+    # These are the correct matrices - but it seems we don't need them???
+    # Just need to boost betas if I remove them
+    # For large p this is just equivalent to multiplying the diagonals by 2
+    # so that could have something to do with why this step doesn't seem to
+    # matter even though the maths says it does.
+    T_psi *= p * np.ones(T_psi.shape) + (2*p - 2) * np.eye(T_psi.shape[0])
+    T_theta *= n * np.ones(T_theta.shape) + (2*n - 2) * np.eye(T_theta.shape[0])
     
     # Calculate the eigendecomposition
     ell_psi, U = np.linalg.eig(T_psi)
