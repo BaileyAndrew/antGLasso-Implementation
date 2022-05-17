@@ -227,10 +227,13 @@ def scBiGLasso(
 def analyticBiGLasso(
     Ys: "m by p by n tensor, m slices of observed p by n matrix Y_k",
     beta_1: "L1 penalty for Psi" = 0,
-    beta_2: "L2 penalty for Theta" = 0
+    beta_2: "L2 penalty for Theta" = 0,
+    vindicate: bool = False
 ) -> ("Psi", "Theta"):
     """
     I think I've found an analytic solution.
+    Set `vindicate` to true if you want a measure of confidence in
+    the approximation.
     """
     if len(Ys.shape) == 2:
         Ys = Ys[np.newaxis, :, :]
@@ -273,12 +276,6 @@ def analyticBiGLasso(
     u = lmbda[:n]
     v = lmbda[n:]
     
-    # Observation: tr_p[D].inv approximately equal to to n * p * tr_p[D.inv]
-    # Can check that observation with the following code:
-    #print (huh := np.diag(tr_p(np.diag(1 / kron_sum_diag(u, v)), p=p)) / 10000)
-    #print (wuh := 1 / np.diag(tr_p(np.diag(kron_sum_diag(u, v)), p=p)))
-    #print (np.abs(huh - wuh) / huh)
-    
     # Reconstruct Psi, Theta
     Psi = U @ np.diag(u) @ U.T
     Theta = V @ np.diag(v) @ V.T
@@ -290,6 +287,32 @@ def analyticBiGLasso(
     if beta_2 > 0:
         Theta = scale_diagonals_to_1(LASSO(np.eye(p), Theta, beta_2 / p))
     
+    if vindicate:
+        print(f"Psi vindication: {vindicate_approximations(u, v)}")
+        print(f"Theta vindication: {vindicate_approximations(v, u)}")
+    
     return Psi, Theta
     
+def vindicate_approximations(
+    u: "Vector of eigenvalues",
+    v: "Vector of eigenvalues",
+) -> "Value between 0 and 1: 1 is good!":
+    """
+    The algorithm relies on the following approximation:
+    tr_p[D].inv approximately equal to to p * p * tr_p[D.inv]
     
+    **And really all that matters is approximate proportionality**
+    
+    So to check (after-the-fact) whether this approximation was
+    satisfied, we can check the cosine between them.
+    The closer this is to 1, the more confident we can be.
+    """
+    
+    p = v.shape[0]
+    harmonics_first = np.diag(tr_p(np.diag(1 / kron_sum_diag(u, v)), p=p)) / (p*p)
+    arithmetics_first = 1 / np.diag(tr_p(np.diag(kron_sum_diag(u, v)), p=p))
+    norm = harmonics_first @ arithmetics_first
+    return np.abs(norm / (
+        np.linalg.norm(harmonics_first, ord=2)
+        * np.linalg.norm(arithmetics_first, ord=2)
+    ))
