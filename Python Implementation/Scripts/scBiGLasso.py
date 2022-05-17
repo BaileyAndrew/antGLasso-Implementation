@@ -248,7 +248,6 @@ def analyticBiGLasso(
     # This makes the algorithm work for InvWishart as well.
     # Formally, I'm not sure why, but intuitively I think that
     # it's because it squashes the eigenvalues to be near 1,
-    # 
     T_psi = scale_diagonals_to_1(T_psi)
     T_theta = scale_diagonals_to_1(T_theta)
     
@@ -310,9 +309,6 @@ def vindicate_approximations(
     satisfied, we can check the cosine between them.
     The closer this is to 1, the more confident we can be.
     """
-    
-    # The results this gives don't really align with my expectations
-    # so there may be something wrong here...
     
     p = v.shape[0]
     harmonics_first = np.diag(tr_p(np.diag(1 / kron_sum_diag(u, v)), p=p)) / (p*p)
