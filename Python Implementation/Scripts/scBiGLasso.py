@@ -244,16 +244,15 @@ def analyticBiGLasso(
     T_psi = np.einsum("mpn, mpl -> nl", Ys, Ys) / (m*p)
     T_theta = np.einsum("mpn, mln -> pl", Ys, Ys) / (m*n)
     
-    # Hadamard multiply by the K matrices
-    # Weirdly enough, these matrices work too??
-    #T_psi *= (2*p - 1) * np.ones(T_psi.shape) + p * np.eye(T_psi.shape[0])
-    #T_theta *= (2*n - 1) * np.ones(T_theta.shape) + n * np.eye(T_theta.shape[0])
+    # Let's scale the covariance matrices to precision matrices
+    # This makes the algorithm work for InvWishart as well.
+    # Formally, I'm not sure why, but intuitively I think that
+    # it's because it squashes the eigenvalues to be near 1,
+    # 
+    T_psi = scale_diagonals_to_1(T_psi)
+    T_theta = scale_diagonals_to_1(T_theta)
     
-    # These are the correct matrices - but it seems we don't need them???
-    # Just need to boost betas if I remove them
-    # For large p this is just equivalent to multiplying the diagonals by 2
-    # so that could have something to do with why this step doesn't seem to
-    # matter even though the maths says it does.
+    # Hadamard multiply by the K matrices
     T_psi *= p * np.ones(T_psi.shape) + (2*p - 2) * np.eye(T_psi.shape[0])
     T_theta *= n * np.ones(T_theta.shape) + (2*n - 2) * np.eye(T_theta.shape[0])
     
@@ -261,7 +260,11 @@ def analyticBiGLasso(
     ell_psi, U = np.linalg.eig(T_psi)
     ell_theta, V = np.linalg.eig(T_theta)
     
-    # We're really interested in the reciprocals
+    # This approximates tr_p[D].inv, which seems to be
+    # approximately colinear with tr_p[D.inv] (the quantity
+    # that we actually want). [colinearity is all we need]
+    # But if we treat our values as tr_p[D].inv then we
+    # have a non-iterative solution for the eigenvalues.
     ell_psi = 1 / ell_psi
     ell_theta = 1 / ell_theta
     
