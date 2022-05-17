@@ -308,6 +308,9 @@ def vindicate_approximations(
     The closer this is to 1, the more confident we can be.
     """
     
+    # The results this gives don't really align with my expectations
+    # so there may be something wrong here...
+    
     p = v.shape[0]
     harmonics_first = np.diag(tr_p(np.diag(1 / kron_sum_diag(u, v)), p=p)) / (p*p)
     arithmetics_first = 1 / np.diag(tr_p(np.diag(kron_sum_diag(u, v)), p=p))

@@ -3,7 +3,7 @@ This script contains functions to generate matrix-variate data
 """
 
 import numpy as np
-from scipy.stats import wishart, matrix_normal, bernoulli
+from scipy.stats import wishart, matrix_normal, bernoulli, invwishart
 from scipy.stats import multivariate_normal
 from scipy.linalg import solve_triangular
 from Scripts.utilities import kron_sum, kron_sum_diag, kron_prod
@@ -113,7 +113,7 @@ def generate_sparse_posdef_matrix(
     D = (1-b*b)*np.eye(n)
     Mask = D + b @ b.transpose([0, 2, 1])
 
-    Psi = wishart.rvs(100, np.eye(n), size=size) / 100 * Mask
+    Psi = wishart.rvs(n, np.eye(n), size=size) / n * Mask
     Psi /= np.trace(Psi, axis1=1, axis2=2).reshape(size, 1, 1) / n
     
     return Psi
