@@ -1,6 +1,6 @@
-# Analytic BiGraphical Lasso
+# Non-Iterative BiGraphical Lasso
 
-In `Python Implementation/Scripts/Analytic BiGLasso Minimal Example.ipynb` you can see a minimal example.  The file where the algorithm is defined is `Python Implementation/Scripts/scBiGLasso.py` - it's the last function in that file, `analyticBiGLasso`.
+In `Python Implementation/Scripts/Analytic BiGLasso Minimal Example.ipynb` you can see a minimal example.  The file where the algorithm is defined is `Python Implementation/Scripts/niBiGLasso.py`.
 
 The rest of this readme pertains to scBiGLasso, I'll need to clean it up later but don't have time at the moment.
 
