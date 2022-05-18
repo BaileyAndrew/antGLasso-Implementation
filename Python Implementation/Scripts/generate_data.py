@@ -91,7 +91,8 @@ def generate_sparse_posdef_matrix(
     *,
     off_diagonal_scale: "Value strictly between 0 and 1 to guarantee posdefness" = 0.9,
     size: "Number of samples to return" = 1,
-    posdef_distr: "Distribution for dense positive definite matrix" = "Wishart"
+    posdef_distr: "Distribution for dense positive definite matrix" = None,
+    seed: "Seed matrix to put in the posdef_distr" = None
 ) -> "(`size`, n, n) batch of sparse positive definite matrices":
     """
     Generates two sparse positive definite matrices.
@@ -114,14 +115,12 @@ def generate_sparse_posdef_matrix(
     D = (1-b*b)*np.eye(n)
     Mask = D + b @ b.transpose([0, 2, 1])
 
-    posdef: "Distribution from which to sample dense posdef matrix"
-    if posdef_distr == "Wishart":
-        posdef = wishart
-    elif posdef_distr == "InvWishart" or posdef_distr == "Inv Wishart":
-        posdef = invwishart
-    else:
-        raise ValueError(f"{posdef_distr} not a valid distribution!")
-    Psi = posdef.rvs(n, np.eye(n), size=size) / n * Mask
+    if posdef_distr is None:
+        posdef_distr = invwishart
+    if seed is None:
+        seed = np.eye(n)
+        
+    Psi = posdef_distr.rvs(n, seed, size=size) / n * Mask
     Psi /= np.trace(Psi, axis1=1, axis2=2).reshape(size, 1, 1) / n
     
     return Psi
@@ -177,7 +176,8 @@ def generate_Ys(
     expected_nonzero_theta: "Number of nondiagonal nonzero entries expected in Theta",
     off_diagonal_scale: "Value strictly between 0 and 1 to guarantee inverse" = 0.9,
     structure: "Kronecker Sum/Product" = "Kronecker Sum",
-    posdef_distr: "Distribution for dense positive definite matrix" = "Wishart"
+    posdef_distr: "Distribution for dense positive definite matrix" = None,
+    seed: "Seed for posdef_distr" = None
 ) -> "(n, n) precision matrix, (p, p) precision matrix, (m, p, n) sample tensor":
     
     """
@@ -190,14 +190,16 @@ def generate_Ys(
         expected_nonzero_psi, 
         off_diagonal_scale=off_diagonal_scale,
         size=1,
-        posdef_distr=posdef_distr
+        posdef_distr=posdef_distr,
+        seed=seed
     ).squeeze()
     Theta: "(p, p)" = generate_sparse_posdef_matrix(
         p,
         expected_nonzero_theta, 
         off_diagonal_scale=off_diagonal_scale,
         size=1,
-        posdef_distr=posdef_distr
+        posdef_distr=posdef_distr,
+        seed=seed
     ).squeeze()
     
     if structure == "Kronecker Product":

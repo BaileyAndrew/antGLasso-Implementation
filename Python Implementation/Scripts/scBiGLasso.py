@@ -231,7 +231,6 @@ def analyticBiGLasso(
     vindicate: bool = False
 ) -> ("Psi", "Theta"):
     """
-    I think I've found an analytic solution.
     Set `vindicate` to true if you want a measure of confidence in
     the approximation.
     """
@@ -283,6 +282,12 @@ def analyticBiGLasso(
     Theta = V @ np.diag(v) @ V.T
     Psi = scale_diagonals_to_1(Psi)
     Theta = scale_diagonals_to_1(Theta)
+    
+    # Question: why don't we just do this: ???
+    # Since the Ts are empirical covariances,
+    # their inverses are empirical precisions...
+    #Psi = scale_diagonals_to_1(np.linalg.inv(T_psi))
+    #Theta = scale_diagonals_to_1(np.linalg.inv(T_theta))
         
     if beta_1 > 0: 
         Psi = scale_diagonals_to_1(LASSO(np.eye(n), Psi, beta_1 / n))
