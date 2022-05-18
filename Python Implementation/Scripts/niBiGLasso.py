@@ -207,7 +207,7 @@ def no_hassle(Ys, beta_1, beta_2, vindicate=True, nibig=None):
         nibig = niBiGLasso()
     T_psi, T_theta = nibig.get_empiricals(Ys)
     nibig.fit(T_psi, T_theta)
-    Psi, Theta = nibig.shrink(0.02, 0.02)
+    Psi, Theta = nibig.shrink(beta_1, beta_2)
     if vindicate:
         vinds = nibig.vindicate()
     else:
