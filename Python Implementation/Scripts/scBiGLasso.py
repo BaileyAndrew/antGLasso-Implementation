@@ -7,6 +7,9 @@ from sklearn.exceptions import ConvergenceWarning
 from Scripts.utilities import LASSO
 import warnings
 
+# for testing
+from Scripts.utilities import kron_sum_diag, tr_p, K
+
 # Note: in matrix variable name subscripts:
 # 'sisj' will represent '\i\j'
 # i.e. s = \
@@ -42,6 +45,40 @@ def _calculate_A(
     B = (1 / (1 + v)).squeeze()
     C = 1 / (u + v)
     return np.einsum("l, kl, ak, bk -> ab", B, C, U, U, optimize=path)
+
+def _calculate_A_sisi(
+    i: "Row of precision matrix we're currently estimating",
+    U: "Eigenvectors of Psi",
+    u: "Vector of eigenvalues of Psi",
+    v: "Vector of eigenvalues of Theta",
+    psi_ii: "Diagonal element of Psi",
+    path: "The path for the einsum operation" = 'optimal'
+):
+    """
+    The indices here are different than those used in paper.
+    (Because the paper uses i,j here and elsewhere it uses i for
+    other things, we chose to stay consistent with the 'other things'
+    rather than this calculation)
+    
+    paper -> code:
+    
+    i -> k   [inner sum index]
+    j -> ell [outer sum index]
+      -> t   [row of column of A; not indexed in paper]
+      -> i   [row of precision matrix; not indexed in paper]
+      -> j   [column of A; not indexed in paper]
+    """
+    n = u.shape[0]
+    p = v.shape[1]
+    
+    # So far the best way, where we just let numpy figure out the most
+    # efficient way to do the sum
+    U_si = np.delete(U, i, axis=0)
+    B = (1 / (psi_ii + v)).squeeze()
+    C = 1 / (u + v)
+    newer_way = np.einsum("l, kl, ak, bk -> ab", B, C, U_si, U_si, optimize=path)
+    
+    return newer_way
     
 # Note: for some reason, LASSO_sklearn can fail to converge even though
 # LASSO_cvxpy will converge - but LASSO_sklearn's results are better in
@@ -77,12 +114,21 @@ def _scBiGLasso_internal(
 
         # Estimate new psi_isi
         A_sisi: "A_\i\i as in paper" = np.delete(np.delete(A, i, axis=0), i, axis=1)
+            
+        # This performs identically
+        #A_sisi = _calculate_A_sisi(
+        #    i, U, u, v, psi_ii, path
+        #)
+        
         t_isi = np.delete(T, i, axis=1)[i, :]
         
         # Note that the paper has A @ psi + p * t = 0
         # But sklearn minimizes A @ psi - p * t
         # Hence the factor of -p we apply.
-        psi_isi_update = LASSO(A_sisi, -p * t_isi, beta)
+        if beta > 0:
+            psi_isi_update = LASSO(A_sisi, -p * t_isi, beta)
+        else:
+            psi_isi_update = np.linalg.lstsq(A_sisi, p * t_isi, rcond=None)[0]
         
         # Update row
         out_Psi[i, :i] = psi_isi_update[:i]
@@ -114,11 +160,11 @@ def scBiGLasso(
     if len(Ys.shape) == 2:
         Ys = Ys[np.newaxis, :, :]
         
-    (m, p, n) = Ys.shape
+    (m, n, p) = Ys.shape
     T_psi: "(Average) empirical covariance matrix for Psi"
     T_theta: "(Average) empirical covariance matrix for Theta"
-    T_psi = np.einsum("mpn, mpl -> nl", Ys, Ys) / (m*p)
-    T_theta = np.einsum("mpn, mln -> pl", Ys, Ys) / (m*n)
+    T_psi = np.einsum("mnp, mlp -> nl", Ys, Ys) / (m*p)
+    T_theta = np.einsum("mnp, mnl -> pl", Ys, Ys) / (m*n)
     
     if Psi_init is None:
         Psi_init = T_psi
@@ -192,5 +238,19 @@ def scBiGLasso(
                     print(f"Early convergence on iteration {tau}!")
                 break
             old_convergence_checks = old_convergence_checks[1:]
+            
+    # For testing
+    u, U = np.linalg.eigh(Psi)
+    v, V = np.linalg.eigh(Theta)
+    trpD = tr_p(np.linalg.inv(np.diag(kron_sum_diag(u, v))), p=p)
+    T_ = T_psi * K(n, 2*p-1, p)
+    trpW = U @ trpD @ U.T
+    T_ -= np.diag(np.diag(T_))
+    trpW -= np.diag(np.diag(trpW))
+    assert np.isclose(
+        trpW,
+        -T_,
+        atol=1e-3
+    ).all(), (trpW + T_)
     
     return Psi, Theta

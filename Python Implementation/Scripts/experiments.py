@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from Scripts.generate_data import *
 from Scripts.utilities import *
 from Scripts.scBiGLasso import *
+from Scripts.anBiGLasso import *
 
 def get_cms_for_betas(
     betas_to_try: "List of L1 penalties to try",
@@ -15,7 +16,8 @@ def get_cms_for_betas(
     kwargs_gen: "Dictionary of parameters for generating random data",
     kwargs_lasso: "Dictionary of parameters for the scBiGLasso algorithm",
     cm_mode: "`mode` argument for `generate_confusion_matrices`" = "Negative",
-    verbose: bool = False
+    verbose: bool = False,
+    alg: str = "scBiGLasso"
 ) -> (
     "List of all average confusion matrices for Psi",
     "List of all average confusion matrices for Theta",
@@ -37,15 +39,24 @@ def get_cms_for_betas(
         Theta_cm = np.empty((2, 2))
         for attempt in range(attempts):
             Psi_gen, Theta_gen, Ys = generate_Ys(**kwargs_gen)
-            Psi, Theta = scBiGLasso(
-                Ys=Ys,
-                beta_1=b,
-                beta_2=b,
-                Psi_init=None,#np.eye(Ys.shape[-1]),
-                Theta_init=None,#np.eye(Ys.shape[-1]),
-                verbose=verbose,
-                **kwargs_lasso
-            )
+            if alg == "scBiGLasso":
+                Psi, Theta = scBiGLasso(
+                    Ys=Ys,
+                    beta_1=b,
+                    beta_2=b,
+                    Psi_init=None,#np.eye(Ys.shape[-1]),
+                    Theta_init=None,#np.eye(Ys.shape[-1]),
+                    verbose=verbose,
+                    **kwargs_lasso
+                )
+            elif alg == "anBiGLasso":
+                Psi, Theta = anBiGLasso(
+                    Ys=Ys,
+                    beta_1=b,
+                    beta_2=b
+                )
+            else:
+                raise ValueError(f"no such algorithm {alg}")
             Psi_cm += generate_confusion_matrices(Psi, Psi_gen, mode=cm_mode)
             Theta_cm += generate_confusion_matrices(Theta, Theta_gen, mode=cm_mode)
         Psi_cms.append(Psi_cm / (Psi_cm.sum()))
@@ -102,7 +113,8 @@ def create_precision_recall_curves(
     p: "Size of Psi/Theta",
     indices_to_highlight: "List of indices of betas to highlight on plot",
     attempts: "Number of times to average over" = 100,
-    verbose: bool = False
+    verbose: bool = False,
+    alg: str = "scBiGLasso"
 ):
     """
     Given a list of L1 penalties, calculate the 
@@ -116,17 +128,23 @@ def create_precision_recall_curves(
         'expected_nonzero_psi': p**2 / 5,
         'expected_nonzero_theta': n**2 / 5
     }
-    kwargs_lasso = {
-        "N": 100,
-        "eps": 10e-3,
-    }
+    if alg == "scBiGLasso":
+        kwargs_lasso = {
+            "N": 100,
+            "eps": 10e-3,
+        }
+    elif alg == "anBiGLasso":
+        kwargs_lasso = dict({})
+    else:
+        raise ValueError(f"no such algorithm {alg}")
 
     Psi_cms, Theta_cms = get_cms_for_betas(
         betas_to_try,
         attempts=attempts,
         kwargs_gen=kwargs_gen,
         kwargs_lasso=kwargs_lasso,
-        verbose=verbose
+        verbose=verbose,
+        alg=alg
     )
     
     return make_cm_plots(

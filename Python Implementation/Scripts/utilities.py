@@ -245,3 +245,12 @@ def generate_confusion_matrices(
         [TP, FP],
         [FN, TN]
     ])
+
+def K(
+    shape: "Size of matrix (scalar, not tuple)",
+    a: "Scalar",
+    b: "Scalar"
+) -> "Square matrix with shape `shape`, diagonals `a`, off-diagonals `b`":
+    I = np.eye(shape)
+    J = np.ones((shape, shape))
+    return a * I + b * (J - I)
