@@ -108,7 +108,7 @@ def _scBiGLasso_internal(
 def scBiGLasso(
     N: "Maximum iteration number",
     eps: "Tolerance",
-    Ys: "m by p by n tensor, m slices of observed p by n matrix Y_k",
+    Ys: "m by n by p tensor, m slices of observed n by p matrix Y_k",
     beta_1: "Psi's L1 penalty",
     beta_2: "Theta's L1 penalty",
     Psi_init: "n by n initial estimate for Psi" = None,
@@ -121,11 +121,11 @@ def scBiGLasso(
     if len(Ys.shape) == 2:
         Ys = Ys[np.newaxis, :, :]
         
-    (m, p, n) = Ys.shape
+    (m, n, p) = Ys.shape
     T_psi: "(Average) empirical covariance matrix for Psi"
     T_theta: "(Average) empirical covariance matrix for Theta"
-    T_psi = np.einsum("mpn, mpl -> nl", Ys, Ys) / (m*p)
-    T_theta = np.einsum("mpn, mln -> pl", Ys, Ys) / (m*n)
+    T_psi = np.einsum("mnp, mlp -> nl", Ys, Ys) / (m*n)
+    T_theta = np.einsum("mnp, mnl -> pl", Ys, Ys) / (m*p)
     
     if Psi_init is None:
         Psi_init = T_psi.copy()
@@ -146,18 +146,18 @@ def scBiGLasso(
     # Used to speed up computation of the A matrix prior to Lasso
     path_Psi: "Contraction order for the A matrix" = np.einsum_path(
         "l, kl, ak, bk -> ab",
-        np.empty((p,)),
-        np.empty((n, p)),
-        np.empty((n, n)),
-        np.empty((n, n)),
-        optimize='optimal'
-    )[0]
-    path_Theta: "Contraction order for the A matrix" = np.einsum_path(
-        "l, kl, ak, bk -> ab",
         np.empty((n,)),
         np.empty((p, n)),
         np.empty((p, p)),
         np.empty((p, p)),
+        optimize='optimal'
+    )[0]
+    path_Theta: "Contraction order for the A matrix" = np.einsum_path(
+        "l, kl, ak, bk -> ab",
+        np.empty((p,)),
+        np.empty((n, p)),
+        np.empty((n, n)),
+        np.empty((n, n)),
         optimize='optimal'
     )[0]
     

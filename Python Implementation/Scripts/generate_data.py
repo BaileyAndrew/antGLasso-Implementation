@@ -39,7 +39,7 @@ def matrix_normal_ks(
     
     # Transpose to return to standard shape (size, n)
     Ys_vec: "Vectorized version of output matrix" = (A @ z).T
-    Ys = np.transpose(Ys_vec.reshape((size, n, p)), [0, 2, 1])
+    Ys = np.transpose(Ys_vec.reshape((size, p, n)), [0, 2, 1])
     
     return Ys
 
@@ -170,15 +170,15 @@ def generate_batched_Ys(
 
 def generate_Ys(
     m: "Number of Samples",
-    p: "Number of Datapoints",
-    n: "Number of Features",
+    n: "Number of Datapoints",
+    p: "Number of Features",
     expected_nonzero_psi: "Number of nondiagonal nonzero entries expected in Psi",
     expected_nonzero_theta: "Number of nondiagonal nonzero entries expected in Theta",
     off_diagonal_scale: "Value strictly between 0 and 1 to guarantee inverse" = 0.9,
     structure: "Kronecker Sum/Product" = "Kronecker Sum",
     posdef_distr: "Distribution for dense positive definite matrix" = None,
     seed: "Seed for posdef_distr" = None
-) -> "(n, n) precision matrix, (p, p) precision matrix, (m, p, n) sample tensor":
+) -> "(n, n) precision matrix, (p, p) precision matrix, (m, n, p) sample tensor":
     
     """
     Generate m samples of p by n matrices from the matrix normal (kronecker
@@ -217,7 +217,7 @@ def generate_Ys(
         Omega: "Combined precision matrix" = kron_sum(Psi, Theta)
         Sigma: "Covariance matrix" = np.linalg.inv(Omega)
         Ys_vec = multivariate_normal(cov=Sigma).rvs(size=m)
-        Ys = np.transpose(Ys_vec.reshape((m, n, p)), [0, 2, 1])
+        Ys = np.transpose(Ys_vec.reshape((m, p, n)), [0, 2, 1])
         # ^^ DO NOT do `Ys = Ys_vec.reshape((m, p, n))`...
         # Because numpy thinks of matrices as 'row first' whereas the
         # vectorization operation in mathematics is 'column first'

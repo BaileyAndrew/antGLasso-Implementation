@@ -199,6 +199,15 @@ def generate_confusion_matrices(
         [FN, TN]
     ])
 
+def safe_divide(x, undefined=1):
+    """
+    Finds 1/`x`, but define 1/0 as  
+    """
+    out = x.copy()
+    out[x == 0] = undefined
+    out[x != 0] = 1/out[x != 0]
+    return out
+
 def scale_diagonals_to_1(Psi):
     """
     Scales rows and columns equally such that
@@ -211,7 +220,7 @@ def scale_diagonals_to_1(Psi):
     """
     diags = np.diag(Psi).copy()
     diags = np.abs(diags)
-    D = np.diag(1 / np.sqrt(diags))
+    D = np.diag(safe_divide(np.sqrt(diags)))
     return D @ Psi @ D
 
 def crush_rows(X: "(n, n) Matrix") -> "(n-1, n) Matrix":

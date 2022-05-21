@@ -51,7 +51,7 @@ class niBiGLasso:
         
     def get_empiricals(
         self,
-        Ys: "(m, p, n) tensor, m slices of observed (p, n) matrix Y_k"
+        Ys: "(m, n, p) tensor, m slices of observed (n, p) matrix Y_k"
     ) -> (
         "(n, n) within-row empirical covariance matrix",
         "(p, p) within-row empirical covariance matrix"
@@ -66,21 +66,24 @@ class niBiGLasso:
         if len(Ys.shape) == 2:
             Ys = Ys[np.newaxis, :, :]
         
-        (m, p, n) = Ys.shape
+        (m, n, p) = Ys.shape
         T_psi: "(Average) empirical covariance matrix for Psi"
         T_theta: "(Average) empirical covariance matrix for Theta"
-        T_psi = np.einsum("mpn, mpl -> nl", Ys, Ys) / (m*p)
-        T_theta = np.einsum("mpn, mln -> pl", Ys, Ys) / (m*n)
+        T_psi = np.einsum("mnp, mlp -> nl", Ys, Ys) / (m*p)
+        T_theta = np.einsum("mnp, mnl -> pl", Ys, Ys) / (m*n)
+        
+        assert T_psi.shape == (n, n)
+        assert T_theta.shape == (p, p)
         
         return T_psi, T_theta
         
     def fit(
         self,
-        T_psi: "(p, p) within-row empirical covariance matrix",
-        T_theta: "(n, n) within-column empirical covariance matrix"
+        T_psi: "(n, n) within-row empirical covariance matrix",
+        T_theta: "(p, p) within-column empirical covariance matrix"
     ) -> (
-        "(p, p) within-row precision matrix",
-        "(n, n) within-column precision matrix"
+        "(n, n) within-row precision matrix",
+        "(p, p) within-column precision matrix"
     ):
         """
         Find the within-row precision matrices Psi and Theta,
@@ -100,22 +103,24 @@ class niBiGLasso:
         if self.already_computed and not self.silence_warnings:
             print("Warning: Already fitted with this instance")
             
-        p = T_psi.shape[0]
-        n = T_theta.shape[0]
+        n = T_psi.shape[0]
+        p = T_theta.shape[0]
             
         # Let's scale the covariance matrices to precision matrices
         # Empirically this makes their eigenvalues close to 1
         # This is important for our approximation
-        T_psi = scale_diagonals_to_1(T_psi)
-        T_theta = scale_diagonals_to_1(T_theta)
-
+        #T_psi = scale_diagonals_to_1(T_psi)
+        #T_theta = scale_diagonals_to_1(T_theta)
         # Hadamard multiply by the K matrices
-        T_psi *= p * np.ones(T_psi.shape) + (2*p - 2) * np.eye(T_psi.shape[0])
-        T_theta *= n * np.ones(T_theta.shape) + (2*n - 2) * np.eye(T_theta.shape[0])
+        K_psi = (n * np.ones(T_psi.shape) + (2*n - 2) * np.eye(T_psi.shape[0]))
+        #K_psi = (2*p-1)*np.eye(T_psi.shape[0]) + p*(np.ones(T_psi.shape)-np.eye(T_psi.shape[0]))
+        K_theta = (p * np.ones(T_theta.shape) + (2*p - 2) * np.eye(T_theta.shape[0]))
+        T_psi_ = T_psi * K_psi
+        T_theta_ = T_theta * K_theta
 
         # Calculate the eigendecomposition
-        ell_psi, U = np.linalg.eig(T_psi)
-        ell_theta, V = np.linalg.eig(T_theta)
+        ell_psi, U = np.linalg.eig(T_psi_)
+        ell_theta, V = np.linalg.eig(T_theta_)
 
         # This approximates tr_p[D].inv, which seems to be
         # approximately colinear with tr_p[D.inv] (the quantity
@@ -127,19 +132,27 @@ class niBiGLasso:
 
         # Construct the matrix that relates these to the eigenvalues
         X = np.ones((n + p, n + p))
-        X[:n, :n] = p * np.eye(n)
-        X[n:, n:] = n * np.eye(p)
+        X[:p, :p] = n * np.eye(p)
+        X[p:, p:] = p * np.eye(n)
 
         # Find eigenvalues
         ell = np.concatenate((ell_psi, ell_theta))
         lmbda = np.linalg.lstsq(X, ell, rcond=None)[0]
-        u = lmbda[:n]
-        v = lmbda[n:]
+        u = lmbda[:p]
+        v = lmbda[p:]
+        
+        # Test what if we just inverted the T evals
+        # THIS DOES AMAZINGLY!
+        # [Should comment it out for actual alg though]
+        # note that m ~= 8 seems to be magical point where
+        # it starts to do great
+        u = 1 / np.linalg.eig(T_psi)[0]
+        v = 1 / np.linalg.eig(T_theta)[0]
         
         # Store for later vindication
         self.u = u
         self.v = v
-
+        
         # Reconstruct Psi, Theta
         Psi = U @ np.diag(u) @ U.T
         Theta = V @ np.diag(v) @ V.T
@@ -153,8 +166,8 @@ class niBiGLasso:
         beta_1: "L1 penalty for Psi",
         beta_2: "L2 penalty for Theta",
     ) -> (
-        "(p, p) within-row precision matrix",
-        "(n, n) within-column precision matrix"
+        "(n, n) within-row precision matrix",
+        "(p, p) within-column precision matrix"
     ):
         """
         Apply LASSO regularization
@@ -162,8 +175,8 @@ class niBiGLasso:
         Note that we don't store the shrunk matrices,
         this class keeps track of the originals.
         """
-        p = self.Psi.shape[0]
-        n = self.Theta.shape[0]
+        n = self.Psi.shape[0]
+        p = self.Theta.shape[0]
         
         Psi = scale_diagonals_to_1(LASSO(np.eye(n), self.Psi, beta_1 / n))
         Theta = scale_diagonals_to_1(LASSO(np.eye(p), self.Theta, beta_2 / p))
