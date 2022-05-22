@@ -72,8 +72,7 @@ def generate_sparse_posdef_matrix(
     b = bernoulli(p=p).rvs(size=(size, n, 1)) * np.sqrt(off_diagonal_scale)
     D = (1-b*b)*np.eye(n)
     Mask = D + b @ b.transpose([0, 2, 1])
-
-    Psi = invwishart.rvs(df_scale * n, np.eye(n), size=size) * Mask
+    Psi = invwishart.rvs(df_scale * n, np.eye(n), size=size) / (df_scale * n) * Mask
     Psi /= np.trace(Psi, axis1=1, axis2=2).reshape(size, 1, 1) / n
     
     return Psi

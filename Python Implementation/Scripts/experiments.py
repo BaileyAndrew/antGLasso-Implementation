@@ -114,7 +114,8 @@ def create_precision_recall_curves(
     indices_to_highlight: "List of indices of betas to highlight on plot",
     attempts: "Number of times to average over" = 100,
     verbose: bool = False,
-    alg: str = "scBiGLasso"
+    alg: str = "scBiGLasso",
+    df_scale: "int >= 1" = 1
 ):
     """
     Given a list of L1 penalties, calculate the 
@@ -126,7 +127,8 @@ def create_precision_recall_curves(
         'n': n,
         'structure': 'Kronecker Sum',
         'expected_nonzero_psi': p**2 / 5,
-        'expected_nonzero_theta': n**2 / 5
+        'expected_nonzero_theta': n**2 / 5,
+        'df_scale': df_scale
     }
     if alg == "scBiGLasso":
         kwargs_lasso = {
