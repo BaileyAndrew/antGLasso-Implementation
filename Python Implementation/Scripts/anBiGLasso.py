@@ -40,9 +40,6 @@ def eigenvectors_MLE(
 ) -> "Tuple of the MLE estimates of eigenvectors of Psi/Theta":
     """
     An implementation of Theorem 1
-    
-    This has been verified to work, we get the same results
-    as scBiGLasso!
     """
     n = T.shape[0]
     p = S.shape[0]
@@ -92,6 +89,7 @@ def calculateEigenvalues(
     (n, p) = Sigmas.shape
     invSigs = 1 / Sigmas
     
+    
     a = invSigs.T.reshape((n*p,))
     B = np.empty((
         n * p, n + p 
@@ -104,6 +102,29 @@ def calculateEigenvalues(
         B[row, n+j] = 1
     
     Ls = np.linalg.lstsq(B, a, rcond=None)[0]
+    
+    
+    """
+    B_ = np.concatenate(
+        [
+            B[:n],
+            B[n::n]
+        ]
+    )
+    a_ = np.concatenate(
+        [
+            a[:n],
+            a[n::n]
+        ]
+    )
+    #print(B_)
+    """
+    
+    
+    #print(Ls)
+    #Ls = np.linalg.lstsq(B_, a_, rcond=None)[0]
+    #print(Ls)
+    
     return Ls[:n], Ls[n:]
 
 def eigenvalues_MLE(

@@ -128,6 +128,7 @@ def _scBiGLasso_internal(
         if beta > 0:
             psi_isi_update = LASSO(A_sisi, -p * t_isi, beta)
         else:
+            # Warning: this code breaks, there's a bug on this line somewhere
             psi_isi_update = np.linalg.lstsq(A_sisi, p * t_isi, rcond=None)[0]
         
         # Update row
@@ -240,6 +241,7 @@ def scBiGLasso(
             old_convergence_checks = old_convergence_checks[1:]
             
     # For testing
+    """
     u, U = np.linalg.eigh(Psi)
     v, V = np.linalg.eigh(Theta)
     trpD = tr_p(np.linalg.inv(np.diag(kron_sum_diag(u, v))), p=p)
@@ -252,5 +254,6 @@ def scBiGLasso(
         -T_,
         atol=1e-3
     ).all(), (trpW + T_)
+    """
     
     return Psi, Theta

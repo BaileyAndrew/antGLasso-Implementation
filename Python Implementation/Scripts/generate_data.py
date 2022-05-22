@@ -49,7 +49,8 @@ def generate_sparse_posdef_matrix(
     expected_nonzero: "Number of nondiagonal nonzero entries expected",
     *,
     off_diagonal_scale: "Value strictly between 0 and 1 to guarantee posdefness" = 0.9,
-    size: "Number of samples to return" = 1
+    size: "Number of samples to return" = 1,
+    df_scale: "How much to multiply the df parameter of invwishart, must be >= 1" = 1
 ) -> "(`size`, n, n) batch of sparse positive definite matrices":
     """
     Generates two sparse positive definite matrices.
@@ -72,7 +73,7 @@ def generate_sparse_posdef_matrix(
     D = (1-b*b)*np.eye(n)
     Mask = D + b @ b.transpose([0, 2, 1])
 
-    Psi = invwishart.rvs(100, np.eye(n), size=size) / 100 * Mask
+    Psi = invwishart.rvs(df_scale * n, np.eye(n), size=size) * Mask
     Psi /= np.trace(Psi, axis1=1, axis2=2).reshape(size, 1, 1) / n
     
     return Psi
@@ -85,7 +86,8 @@ def generate_Ys(
     expected_nonzero_psi: "Number of nondiagonal nonzero entries expected in Psi",
     expected_nonzero_theta: "Number of nondiagonal nonzero entries expected in Theta",
     off_diagonal_scale: "Value strictly between 0 and 1 to guarantee inverse" = 0.9,
-    structure: "Kronecker Sum/Product" = "Kronecker Sum"
+    structure: "Kronecker Sum/Product" = "Kronecker Sum",
+    df_scale: "How much to multiply the df parameter of invwishart, must be >= 1" = 1
 ) -> "(n, n) precision matrix, (p, p) precision matrix, (m, p, n) sample tensor":
     
     """
@@ -97,13 +99,15 @@ def generate_Ys(
         n,
         expected_nonzero_psi, 
         off_diagonal_scale=off_diagonal_scale,
-        size=1
+        size=1,
+        df_scale=df_scale
     ).squeeze()
     Theta: "(p, p)" = generate_sparse_posdef_matrix(
         p,
         expected_nonzero_theta, 
         off_diagonal_scale=off_diagonal_scale,
-        size=1
+        size=1,
+        df_scale=df_scale
     ).squeeze()
     
     if structure == "Kronecker Product":
