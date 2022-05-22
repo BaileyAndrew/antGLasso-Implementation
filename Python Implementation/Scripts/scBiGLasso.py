@@ -3,13 +3,12 @@ This script calculates scBiGLasso
 """
 
 import numpy as np
-import cvxpy as cp
 from sklearn.exceptions import ConvergenceWarning
-from Scripts.utilities import LASSO, scale_diagonals_to_1, crush_rows, uncrush_rows
-from Scripts.utilities import kron_sum_diag, tr_p
-from scipy.linalg import eigh
-import scipy.linalg.lapack as lapack
+from Scripts.utilities import LASSO
 import warnings
+
+# for testing
+from Scripts.utilities import kron_sum_diag, tr_p, K
 
 # Note: in matrix variable name subscripts:
 # 'sisj' will represent '\i\j'
@@ -45,12 +44,41 @@ def _calculate_A(
     # 1 here b/c it allows us to gain a major speedup.
     B = (1 / (1 + v)).squeeze()
     C = 1 / (u + v)
-    A =  np.einsum("l, kl, ak, bk -> ab", B, C, U, U, optimize=path)
+    return np.einsum("l, kl, ak, bk -> ab", B, C, U, U, optimize=path)
+
+def _calculate_A_sisi(
+    i: "Row of precision matrix we're currently estimating",
+    U: "Eigenvectors of Psi",
+    u: "Vector of eigenvalues of Psi",
+    v: "Vector of eigenvalues of Theta",
+    psi_ii: "Diagonal element of Psi",
+    path: "The path for the einsum operation" = 'optimal'
+):
+    """
+    The indices here are different than those used in paper.
+    (Because the paper uses i,j here and elsewhere it uses i for
+    other things, we chose to stay consistent with the 'other things'
+    rather than this calculation)
     
-    # A is theoretically symmetric, floating point may prevent this
-    # so let's force it - because some lapack routines are faster
-    # if it's symmetric
-    return (A + A.T)/2
+    paper -> code:
+    
+    i -> k   [inner sum index]
+    j -> ell [outer sum index]
+      -> t   [row of column of A; not indexed in paper]
+      -> i   [row of precision matrix; not indexed in paper]
+      -> j   [column of A; not indexed in paper]
+    """
+    n = u.shape[0]
+    p = v.shape[1]
+    
+    # So far the best way, where we just let numpy figure out the most
+    # efficient way to do the sum
+    U_si = np.delete(U, i, axis=0)
+    B = (1 / (psi_ii + v)).squeeze()
+    C = 1 / (u + v)
+    newer_way = np.einsum("l, kl, ak, bk -> ab", B, C, U_si, U_si, optimize=path)
+    
+    return newer_way
     
 # Note: for some reason, LASSO_sklearn can fail to converge even though
 # LASSO_cvxpy will converge - but LASSO_sklearn's results are better in
@@ -59,61 +87,73 @@ warnings.filterwarnings("ignore", category=ConvergenceWarning)
 def _scBiGLasso_internal(
     Psi: "Previous estimate of precision matrix",
     Theta: "Other precision matrix [taken as constant]",
-    T_nodiag: "Estimated covariance matrix with diagonals set to zero",
+    T: "Estimated covariance matrix",
     beta: "L1 penalty",
     path: "Contraction order for A's einsum calculation" = 'optimal',
-    lasso_every_loop: bool = False,
     verbose: bool = False
 ):
+    out_Psi = Psi.copy()
     n, _ = Psi.shape
     p, _ = Theta.shape
     
     U: "Eigenvectors of Psi"
     u: "Diagonal eigenvalues of Psi"
-    u, U = np.linalg.eigh(Psi) # numpy faster than scipy here
+    u, U = np.linalg.eigh(out_Psi)
     u = u.reshape((n, 1))
     
-    V: "Eigenvectors of Theta, not computed"
+    V: "Eigenvectors of Theta"
     v: "Diagonal eigenvalues of Theta"
-    v = eigh(Theta, eigvals_only=True)
+    v, V = np.linalg.eigh(Theta)
     v = v.reshape((1, p))
+    
     A: "Used for the A_\i\i in paper" = _calculate_A(U, u, v)
     
-    # Directly rely on lapack bindings to take advantage of A's symmetry!
-    # This is the same as np.linalg.lstsq but *much* faster
-    _, _, Psi, _ = lapack.dsysv(A, A - p * T_nodiag)
-    
-    if lasso_every_loop:
-        # This doesn't work for some reason?  It seems it won't find
-        # the correct solution if beta ~ 0 either...
-        #Psi = scale_diagonals_to_1(Psi)
-        #Psi_crushed = crush_rows(Psi)
-        #Psi_crushed = LASSO(np.eye(n), Psi_crushed, beta / n)
-        #Psi = uncrush_rows(Psi_crushed)
+    for i in range(0, n):
+        # Loop through rows of Psi
+        psi_ii = out_Psi[i, i]
+
+        # Estimate new psi_isi
+        A_sisi: "A_\i\i as in paper" = np.delete(np.delete(A, i, axis=0), i, axis=1)
+            
+        # This performs identically
+        #A_sisi = _calculate_A_sisi(
+        #    i, U, u, v, psi_ii, path
+        #)
         
-        # So we have to add to diagonal to ensure no diagonals are zero
-        Psi = LASSO(np.eye(n), Psi, beta / n)
-        Psi += 0.001 * np.eye(n)
+        t_isi = np.delete(T, i, axis=1)[i, :]
         
-    Psi = scale_diagonals_to_1(Psi)
+        # Note that the paper has A @ psi + p * t = 0
+        # But sklearn minimizes A @ psi - p * t
+        # Hence the factor of -p we apply.
+        if beta > 0:
+            psi_isi_update = LASSO(A_sisi, -p * t_isi, beta)
+        else:
+            # Warning: this code breaks, there's a bug on this line somewhere
+            psi_isi_update = np.linalg.lstsq(A_sisi, p * t_isi, rcond=None)[0]
+        
+        # Update row
+        out_Psi[i, :i] = psi_isi_update[:i]
+        out_Psi[i, (i+1):] = psi_isi_update[i:]
+        
+        # It's symmetric, so update column too
+        out_Psi[:, i] = out_Psi[i, :]
         
     if verbose:
-        u, U = np.linalg.eigh(Psi)
+        u, U = np.linalg.eigh(out_Psi)
         u = u.reshape((n, 1))
         log_det: "log|kronsum(Psi, Theta)|" = np.log(u + v).sum()
     else:
         log_det: "dummy value, not used" = 0
-    return (Psi + Psi.T) / 2, log_det
+    return out_Psi, log_det
 
 def scBiGLasso(
     N: "Maximum iteration number",
     eps: "Tolerance",
-    Ys: "m by n by p tensor, m slices of observed n by p matrix Y_k",
+    Ys: "m by p by n tensor, m slices of observed p by n matrix Y_k",
     beta_1: "Psi's L1 penalty",
     beta_2: "Theta's L1 penalty",
     Psi_init: "n by n initial estimate for Psi" = None,
     Theta_init: "p by p initial estimate for Theta" = None,
-    lasso_every_loop: bool = True,
     verbose: bool = False
 ) -> ("Psi", "Theta"):
     # If m=1 (only one observation), we allow p by n matrix as input
@@ -124,40 +164,39 @@ def scBiGLasso(
     (m, n, p) = Ys.shape
     T_psi: "(Average) empirical covariance matrix for Psi"
     T_theta: "(Average) empirical covariance matrix for Theta"
-    T_psi = np.einsum("mnp, mlp -> nl", Ys, Ys) / (m*n)
-    T_theta = np.einsum("mnp, mnl -> pl", Ys, Ys) / (m*p)
+    T_psi = np.einsum("mnp, mlp -> nl", Ys, Ys) / (m*p)
+    T_theta = np.einsum("mnp, mnl -> pl", Ys, Ys) / (m*n)
     
     if Psi_init is None:
-        Psi_init = T_psi.copy()
+        Psi_init = T_psi
     if Theta_init is None:
-        Theta_init = T_theta.copy()
-        
-    # Code only depends on T without the diagonals, and
-    # we can express nicer matrix equations if we set them
-    # to zero, leading to a speed boost!
-    T_psi -= np.diag(np.diag(T_psi))
-    T_theta -= np.diag(np.diag(T_theta))
+        Theta_init = T_theta
         
     # Now we make sure that the diagonals are 1, since it allows
     # a simplification later on in the algorithm
-    Psi = scale_diagonals_to_1(Psi_init)
-    Theta = scale_diagonals_to_1(Theta_init)
+    D_psi = np.diag(1 / np.sqrt(np.diag(Psi_init)))
+    Psi_init = D_psi @ Psi_init @ D_psi
+    D_theta = np.diag(1 / np.sqrt(np.diag(Theta_init)))
+    Theta_init = D_theta @ Theta_init @ D_theta
+    
+    Psi = Psi_init
+    Theta = Theta_init
     
     # Used to speed up computation of the A matrix prior to Lasso
     path_Psi: "Contraction order for the A matrix" = np.einsum_path(
-        "l, kl, ak, bk -> ab",
-        np.empty((n,)),
-        np.empty((p, n)),
-        np.empty((p, p)),
-        np.empty((p, p)),
-        optimize='optimal'
-    )[0]
-    path_Theta: "Contraction order for the A matrix" = np.einsum_path(
         "l, kl, ak, bk -> ab",
         np.empty((p,)),
         np.empty((n, p)),
         np.empty((n, n)),
         np.empty((n, n)),
+        optimize='optimal'
+    )[0]
+    path_Theta: "Contraction order for the A matrix" = np.einsum_path(
+        "l, kl, ak, bk -> ab",
+        np.empty((n,)),
+        np.empty((p, n)),
+        np.empty((p, p)),
+        np.empty((p, p)),
         optimize='optimal'
     )[0]
     
@@ -169,26 +208,10 @@ def scBiGLasso(
         old_Theta = Theta.copy()
         
         # Estimate Psi
-        Psi, _ = _scBiGLasso_internal(
-            Psi,
-            Theta,
-            T_psi,
-            beta_1,
-            path_Psi,
-            lasso_every_loop,
-            verbose
-        )
+        Psi, _ = _scBiGLasso_internal(Psi, Theta, T_psi, beta_1, path_Psi, verbose)
         
         # Now estimate Theta
-        Theta, log_det = _scBiGLasso_internal(
-            Theta,
-            Psi,
-            T_theta,
-            beta_2,
-            path_Theta,
-            lasso_every_loop,
-            verbose
-        )
+        Theta, log_det = _scBiGLasso_internal(Theta, Psi, T_theta, beta_2, path_Theta, verbose)
             
         # Keep track of objective function, if verbose
         if verbose:
@@ -216,110 +239,21 @@ def scBiGLasso(
                     print(f"Early convergence on iteration {tau}!")
                 break
             old_convergence_checks = old_convergence_checks[1:]
-     
-    if not lasso_every_loop:
-        Psi = scale_diagonals_to_1(LASSO(np.eye(n), Psi, beta_1 / n))
-        Theta = scale_diagonals_to_1(LASSO(np.eye(p), Theta, beta_2 / p))
+            
+    # For testing
+    """
+    u, U = np.linalg.eigh(Psi)
+    v, V = np.linalg.eigh(Theta)
+    trpD = tr_p(np.linalg.inv(np.diag(kron_sum_diag(u, v))), p=p)
+    T_ = T_psi * K(n, 2*p-1, p)
+    trpW = U @ trpD @ U.T
+    T_ -= np.diag(np.diag(T_))
+    trpW -= np.diag(np.diag(trpW))
+    assert np.isclose(
+        trpW,
+        -T_,
+        atol=1e-3
+    ).all(), (trpW + T_)
+    """
     
     return Psi, Theta
-
-
-def analyticBiGLasso(
-    Ys: "m by p by n tensor, m slices of observed p by n matrix Y_k",
-    beta_1: "L1 penalty for Psi" = 0,
-    beta_2: "L2 penalty for Theta" = 0,
-    vindicate: bool = False
-) -> ("Psi", "Theta"):
-    """
-    Set `vindicate` to true if you want a measure of confidence in
-    the approximation.
-    """
-    if len(Ys.shape) == 2:
-        Ys = Ys[np.newaxis, :, :]
-        
-    (m, p, n) = Ys.shape
-    T_psi: "(Average) empirical covariance matrix for Psi"
-    T_theta: "(Average) empirical covariance matrix for Theta"
-    T_psi = np.einsum("mpn, mpl -> nl", Ys, Ys) / (m*p)
-    T_theta = np.einsum("mpn, mln -> pl", Ys, Ys) / (m*n)
-    
-    # Let's scale the covariance matrices to precision matrices
-    # This makes the algorithm work for InvWishart as well.
-    # Formally, I'm not sure why, but intuitively I think that
-    # it's because it squashes the eigenvalues to be near 1,
-    T_psi = scale_diagonals_to_1(T_psi)
-    T_theta = scale_diagonals_to_1(T_theta)
-    
-    # Hadamard multiply by the K matrices
-    T_psi *= p * np.ones(T_psi.shape) + (2*p - 2) * np.eye(T_psi.shape[0])
-    T_theta *= n * np.ones(T_theta.shape) + (2*n - 2) * np.eye(T_theta.shape[0])
-    
-    # Calculate the eigendecomposition
-    ell_psi, U = np.linalg.eig(T_psi)
-    ell_theta, V = np.linalg.eig(T_theta)
-    
-    # This approximates tr_p[D].inv, which seems to be
-    # approximately colinear with tr_p[D.inv] (the quantity
-    # that we actually want). [colinearity is all we need]
-    # But if we treat our values as tr_p[D].inv then we
-    # have a non-iterative solution for the eigenvalues.
-    ell_psi = 1 / ell_psi
-    ell_theta = 1 / ell_theta
-    
-    # Construct the matrix that relates these to the eigenvalues
-    X = np.ones((n + p, n + p))
-    X[:n, :n] = p * np.eye(n)
-    X[n:, n:] = n * np.eye(p)
-    
-    # Find eigenvalues
-    ell = np.concatenate((ell_psi, ell_theta))
-    lmbda = np.linalg.lstsq(X, ell, rcond=None)[0]
-    u = lmbda[:n]
-    v = lmbda[n:]
-    
-    # Reconstruct Psi, Theta
-    Psi = U @ np.diag(u) @ U.T
-    Theta = V @ np.diag(v) @ V.T
-    Psi = scale_diagonals_to_1(Psi)
-    Theta = scale_diagonals_to_1(Theta)
-    
-    # Question: why don't we just do this: ???
-    # Since the Ts are empirical covariances,
-    # their inverses are empirical precisions...
-    #Psi = scale_diagonals_to_1(np.linalg.inv(T_psi))
-    #Theta = scale_diagonals_to_1(np.linalg.inv(T_theta))
-        
-    if beta_1 > 0: 
-        Psi = scale_diagonals_to_1(LASSO(np.eye(n), Psi, beta_1 / n))
-    if beta_2 > 0:
-        Theta = scale_diagonals_to_1(LASSO(np.eye(p), Theta, beta_2 / p))
-    
-    if vindicate:
-        print(f"Psi vindication: {vindicate_approximations(u, v)}")
-        print(f"Theta vindication: {vindicate_approximations(v, u)}")
-    
-    return Psi, Theta
-    
-def vindicate_approximations(
-    u: "Vector of eigenvalues",
-    v: "Vector of eigenvalues",
-) -> "Value between 0 and 1: 1 is good!":
-    """
-    The algorithm relies on the following approximation:
-    tr_p[D].inv approximately equal to to p * p * tr_p[D.inv]
-    
-    **And really all that matters is approximate proportionality**
-    
-    So to check (after-the-fact) whether this approximation was
-    satisfied, we can check the cosine between them.
-    The closer this is to 1, the more confident we can be.
-    """
-    
-    p = v.shape[0]
-    harmonics_first = np.diag(tr_p(np.diag(1 / kron_sum_diag(u, v)), p=p)) / (p*p)
-    arithmetics_first = 1 / np.diag(tr_p(np.diag(kron_sum_diag(u, v)), p=p))
-    norm = harmonics_first @ arithmetics_first
-    return np.abs(norm / (
-        np.linalg.norm(harmonics_first, ord=2)
-        * np.linalg.norm(arithmetics_first, ord=2)
-    ))

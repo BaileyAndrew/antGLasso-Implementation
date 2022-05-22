@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from Scripts.generate_data import *
 from Scripts.utilities import *
 from Scripts.scBiGLasso import *
-from Scripts.niBiGLasso import *
+from Scripts.anBiGLasso import *
 
 def get_cms_for_betas(
     betas_to_try: "List of L1 penalties to try",
@@ -16,7 +16,8 @@ def get_cms_for_betas(
     kwargs_gen: "Dictionary of parameters for generating random data",
     kwargs_lasso: "Dictionary of parameters for the scBiGLasso algorithm",
     cm_mode: "`mode` argument for `generate_confusion_matrices`" = "Negative",
-    verbose: bool = False
+    verbose: bool = False,
+    alg: str = "scBiGLasso"
 ) -> (
     "List of all average confusion matrices for Psi",
     "List of all average confusion matrices for Theta",
@@ -34,21 +35,32 @@ def get_cms_for_betas(
     for b in betas_to_try:
         if verbose:
             print(f"\n\nTrying beta={b:.6f}")
-        Psi_cm = np.empty((attempts, 2, 2))
-        Theta_cm = np.empty((attempts, 2, 2))
+        Psi_cm = np.empty((2, 2))
+        Theta_cm = np.empty((2, 2))
         for attempt in range(attempts):
             Psi_gen, Theta_gen, Ys = generate_Ys(**kwargs_gen)
-            Psi, Theta = scBiGLasso(
-                Ys=Ys,
-                beta_1=b,
-                beta_2=b,
-                verbose=verbose,
-                **kwargs_lasso
-            )
-            Psi_cm[attempt, ...] = generate_confusion_matrices(Psi, Psi_gen, mode=cm_mode)
-            Theta_cm[attempt, ...] = generate_confusion_matrices(Theta, Theta_gen, mode=cm_mode)
-        Psi_cms.append(Psi_cm.mean(axis=0))# / (Psi_cm.sum()))
-        Theta_cms.append(Theta_cm.mean(axis=0))# / (Theta_cm.sum()))
+            if alg == "scBiGLasso":
+                Psi, Theta = scBiGLasso(
+                    Ys=Ys,
+                    beta_1=b,
+                    beta_2=b,
+                    Psi_init=None,#np.eye(Ys.shape[-1]),
+                    Theta_init=None,#np.eye(Ys.shape[-1]),
+                    verbose=verbose,
+                    **kwargs_lasso
+                )
+            elif alg == "anBiGLasso":
+                Psi, Theta = anBiGLasso(
+                    Ys=Ys,
+                    beta_1=b,
+                    beta_2=b
+                )
+            else:
+                raise ValueError(f"no such algorithm {alg}")
+            Psi_cm += generate_confusion_matrices(Psi, Psi_gen, mode=cm_mode)
+            Theta_cm += generate_confusion_matrices(Theta, Theta_gen, mode=cm_mode)
+        Psi_cms.append(Psi_cm / (Psi_cm.sum()))
+        Theta_cms.append(Theta_cm / (Theta_cm.sum()))
         if verbose:
             print(f"\tPsi Confusion: \n{Psi_cms[-1]}")
             print(f"\tTheta Confusion: \n{Theta_cms[-1]}")
@@ -102,9 +114,8 @@ def create_precision_recall_curves(
     indices_to_highlight: "List of indices of betas to highlight on plot",
     attempts: "Number of times to average over" = 100,
     verbose: bool = False,
-    expected_nonzero_psi = None,
-    expected_nonzero_theta = None,
-    lasso_every_loop = True,
+    alg: str = "scBiGLasso",
+    df_scale: "int >= 1" = 1
 ):
     """
     Given a list of L1 penalties, calculate the 
@@ -115,229 +126,33 @@ def create_precision_recall_curves(
         'p': p,
         'n': n,
         'structure': 'Kronecker Sum',
-        'expected_nonzero_psi': n**2 / 5,
-        'expected_nonzero_theta': p**2 / 5
+        'expected_nonzero_psi': p**2 / 5,
+        'expected_nonzero_theta': n**2 / 5,
+        'df_scale': df_scale
     }
-    if expected_nonzero_psi is not None:
-        kwargs_gen['expected_nonzero_psi'] = expected_nonzero_psi
+    if alg == "scBiGLasso":
+        kwargs_lasso = {
+            "N": 100,
+            "eps": 10e-3,
+        }
+    elif alg == "anBiGLasso":
+        kwargs_lasso = dict({})
     else:
-        expected_nonzero_psi = kwargs_gen['expected_nonzero_psi']
-    if expected_nonzero_theta is not None:
-        kwargs_gen['expected_nonzero_theta'] = expected_nonzero_theta
-    else:
-        expected_nonzero_theta = kwargs_gen['expected_nonzero_theta']
-        
-    kwargs_lasso = {
-        'N': 100,
-        'eps': 10e-3,
-        'lasso_every_loop': lasso_every_loop
-    }
+        raise ValueError(f"no such algorithm {alg}")
 
     Psi_cms, Theta_cms = get_cms_for_betas(
         betas_to_try,
         attempts=attempts,
         kwargs_gen=kwargs_gen,
         kwargs_lasso=kwargs_lasso,
-        verbose=verbose
-    )
-    
-    psi_density = expected_nonzero_psi / (2*n*p)
-    theta_density = expected_nonzero_theta / (2*n*p)
-    
-    return make_cm_plots(
-        betas_to_try,
-        Psi_cms,
-        Theta_cms,
-        indices_to_highlight,
-        f"Precision-Recall Plots for {n}x{n} Psi/Theta as L1 Penalty β Varies "
-        + f"({m} samples, {psi_density:.0%}/{theta_density:.0%} Psi/Theta densities)"
-    )
-
-def analytic_create_precision_recall_curves(
-    betas_to_try: "List of L1 penalties to try",
-    m: "Amount of samples",
-    p: "Size of Psi/Theta",
-    indices_to_highlight: "List of indices of betas to highlight on plot",
-    attempts: "Number of times to average over" = 100,
-    expected_nonzero_psi = None,
-    expected_nonzero_theta = None,
-    verbose = False
-):
-    """
-    Given a list of L1 penalties, calculate the 
-    """
-    n = p
-    kwargs_gen = {
-        'm': m,
-        'p': p,
-        'n': n,
-        'structure': 'Kronecker Sum',
-        'expected_nonzero_psi': n**2 / 5,
-        'expected_nonzero_theta': p**2 / 5
-    }
-    if expected_nonzero_psi is not None:
-        kwargs_gen['expected_nonzero_psi'] = expected_nonzero_psi
-    else:
-        expected_nonzero_psi = kwargs_gen['expected_nonzero_psi']
-    if expected_nonzero_theta is not None:
-        kwargs_gen['expected_nonzero_theta'] = expected_nonzero_theta
-    else:
-        expected_nonzero_theta = kwargs_gen['expected_nonzero_theta']
-        
-
-    Psi_cms, Theta_cms = analytic_get_cms_for_betas(
-        betas_to_try,
-        attempts=attempts,
         verbose=verbose,
-        kwargs_gen=kwargs_gen,
+        alg=alg
     )
-    
-    psi_density = expected_nonzero_psi / (2*n*p)
-    theta_density = expected_nonzero_theta / (2*n*p)
     
     return make_cm_plots(
         betas_to_try,
         Psi_cms,
         Theta_cms,
         indices_to_highlight,
-        f"Precision-Recall Plots for {n}x{n} Psi/Theta as L1 Penalty β Varies "
-        + f"({m} samples, {psi_density:.0%}/{theta_density:.0%} Psi/Theta densities)"
-    )
-
-def analytic_get_cms_for_betas(
-    betas_to_try: "List of L1 penalties to try",
-    attempts: "Amount of times we run the experiment to average over",
-    kwargs_gen: "Dictionary of parameters for generating random data",
-    cm_mode: "`mode` argument for `generate_confusion_matrices`" = "Negative",
-    verbose: bool = False
-) -> (
-    "List of all average confusion matrices for Psi",
-    "List of all average confusion matrices for Theta",
-):
-    """
-    We want to be able to make ROC curves parameterized by
-    the L1 penalty.  This function will return confusion matrices
-    to aid in that endeavor.
-    
-    We enforce beta_1 = beta_2.
-    """
-    
-    Psi_cms = []
-    Theta_cms = []
-    for b in betas_to_try:
-        if verbose:
-            print(f"\n\nTrying beta={b:.6f}")
-        Psi_cm = np.empty((attempts, 2, 2))
-        Theta_cm = np.empty((attempts, 2, 2))
-        for attempt in range(attempts):
-            Psi_gen, Theta_gen, Ys = generate_Ys(**kwargs_gen)
-            Psi, Theta, _ = no_hassle(
-                Ys=Ys,
-                beta_1=b,
-                beta_2=b,
-                vindicate=False
-            )
-            Psi_cm[attempt, ...] = generate_confusion_matrices(Psi, Psi_gen, mode=cm_mode)
-            Theta_cm[attempt, ...] = generate_confusion_matrices(Theta, Theta_gen, mode=cm_mode)
-        Psi_cms.append(Psi_cm.mean(axis=0))# / (Psi_cm.sum()))
-        Theta_cms.append(Theta_cm.mean(axis=0))# / (Theta_cm.sum()))
-        if verbose:
-            print(f"\tPsi Confusion: \n{Psi_cms[-1]}")
-            print(f"\tTheta Confusion: \n{Theta_cms[-1]}")
-            print(f"\tPsi Precision: {precision(Psi_cms[-1])}")
-            print(f"\tPsi Recall: {recall(Psi_cms[-1])}")
-    return Psi_cms, Theta_cms
-
-def inverse_trick_get_cms_for_betas(
-    betas_to_try: "List of L1 penalties to try",
-    attempts: "Amount of times we run the experiment to average over",
-    kwargs_gen: "Dictionary of parameters for generating random data",
-    cm_mode: "`mode` argument for `generate_confusion_matrices`" = "Negative",
-    verbose: bool = False
-) -> (
-    "List of all average confusion matrices for Psi",
-    "List of all average confusion matrices for Theta",
-):
-    """
-    We want to be able to make ROC curves parameterized by
-    the L1 penalty.  This function will return confusion matrices
-    to aid in that endeavor.
-    
-    We enforce beta_1 = beta_2.
-    """
-    
-    Psi_cms = []
-    Theta_cms = []
-    for b in betas_to_try:
-        if verbose:
-            print(f"\n\nTrying beta={b:.6f}")
-        Psi_cm = np.empty((attempts, 2, 2))
-        Theta_cm = np.empty((attempts, 2, 2))
-        for attempt in range(attempts):
-            Psi_gen, Theta_gen, Ys = generate_Ys(**kwargs_gen)
-            nibig = niBiGLasso()
-            T1, T2 = nibig.get_empiricals(Ys)
-            nibig.Psi = np.linalg.inv(T1)
-            nibig.Theta = np.linalg.inv(T2)
-            Psi, Theta = nibig.shrink(b, b)
-            Psi_cm[attempt, ...] = generate_confusion_matrices(Psi, Psi_gen, mode=cm_mode)
-            Theta_cm[attempt, ...] = generate_confusion_matrices(Theta, Theta_gen, mode=cm_mode)
-        Psi_cms.append(Psi_cm.mean(axis=0))# / (Psi_cm.sum()))
-        Theta_cms.append(Theta_cm.mean(axis=0))# / (Theta_cm.sum()))
-        if verbose:
-            print(f"\tPsi Confusion: \n{Psi_cms[-1]}")
-            print(f"\tTheta Confusion: \n{Theta_cms[-1]}")
-            print(f"\tPsi Precision: {precision(Psi_cms[-1])}")
-            print(f"\tPsi Recall: {recall(Psi_cms[-1])}")
-    return Psi_cms, Theta_cms
-
-def inverse_trick_create_precision_recall_curves(
-    betas_to_try: "List of L1 penalties to try",
-    m: "Amount of samples",
-    p: "Size of Psi/Theta",
-    indices_to_highlight: "List of indices of betas to highlight on plot",
-    attempts: "Number of times to average over" = 100,
-    expected_nonzero_psi = None,
-    expected_nonzero_theta = None,
-    verbose = False
-):
-    """
-    Given a list of L1 penalties, calculate the 
-    """
-    n = p
-    kwargs_gen = {
-        'm': m,
-        'p': p,
-        'n': n,
-        'structure': 'Kronecker Sum',
-        'expected_nonzero_psi': n**2 / 5,
-        'expected_nonzero_theta': p**2 / 5
-    }
-    if expected_nonzero_psi is not None:
-        kwargs_gen['expected_nonzero_psi'] = expected_nonzero_psi
-    else:
-        expected_nonzero_psi = kwargs_gen['expected_nonzero_psi']
-    if expected_nonzero_theta is not None:
-        kwargs_gen['expected_nonzero_theta'] = expected_nonzero_theta
-    else:
-        expected_nonzero_theta = kwargs_gen['expected_nonzero_theta']
-        
-
-    Psi_cms, Theta_cms = inverse_trick_get_cms_for_betas(
-        betas_to_try,
-        attempts=attempts,
-        verbose=verbose,
-        kwargs_gen=kwargs_gen,
-    )
-    
-    psi_density = expected_nonzero_psi / (2*n*p)
-    theta_density = expected_nonzero_theta / (2*n*p)
-    
-    return make_cm_plots(
-        betas_to_try,
-        Psi_cms,
-        Theta_cms,
-        indices_to_highlight,
-        f"Precision-Recall Plots for {n}x{n} Psi/Theta as L1 Penalty β Varies "
-        + f"({m} samples, {psi_density:.0%}/{theta_density:.0%} Psi/Theta densities)"
+        f"Precision-Recall Plots for {n}x{n} Psi/Theta as L1 Penalty β Varies ({m} samples)"
     )

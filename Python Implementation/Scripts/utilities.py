@@ -3,7 +3,7 @@ Contains helper functions
 """
 
 import numpy as np
-import cvxpy as cp
+#import cvxpy as cp
 from sklearn import linear_model
 #from celer import Lasso as lasso_celer
 
@@ -80,6 +80,35 @@ def kron_sum_diag(
         return A + B
     else:
         return (A + B)[0, ...]
+
+def LASSO_cvxpy(
+    X: "Coefficient matrix",
+    y: "Affine vector",
+    lmbda: "L1 penalty",
+    **kwargs: "Does nothing"
+):
+    """
+    Lasso regression
+    Much of this code taken from CVXPY tutorials
+    """
+    _, n = X.shape
+    beta = cp.Variable(n)
+    
+    def loss_fn(X, y, beta):
+        return cp.norm2(X @ beta - y)**2
+
+    def regularizer(beta):
+        return cp.norm1(beta)
+
+    def objective_fn(X, Y, beta, lambd):
+        return loss_fn(X, y, beta) + lambd * regularizer(beta)
+
+    def mse(X, Y, beta):
+        return (1.0 / X.shape[0]) * loss_fn(X, y, beta).value
+    
+    problem = cp.Problem(cp.Minimize(objective_fn(X, y, beta, lmbda)))
+    problem.solve(solver='ECOS', warm_start=True)
+    return beta.value
     
 def LASSO_sklearn(
     X: "Coefficient matrix",
@@ -93,6 +122,24 @@ def LASSO_sklearn(
     # pre-creating these with warm_start for each row does not
     # improve speed unfortunately.
     lasso = linear_model.Lasso(alpha=lmbda, fit_intercept=False, **kwargs)
+    try:
+        return lasso.fit(X, y).coef_
+    except ValueError as e:
+        print(X)
+        raise e
+        
+def LASSO_celer(
+    X: "Coefficient matrix",
+    y: "Affine vector",
+    lmbda: "L1 penalty",
+    **kwargs: "To pass to sklearn"
+):
+    """
+    Lasso regression using scipy
+    """
+    # pre-creating these with warm_start for each row does not
+    # improve speed unfortunately.
+    lasso = lasso_celer(alpha=lmbda, fit_intercept=False, **kwargs)
     try:
         return lasso.fit(X, y).coef_
     except ValueError as e:
@@ -199,57 +246,11 @@ def generate_confusion_matrices(
         [FN, TN]
     ])
 
-def safe_divide(x, undefined=1):
-    """
-    Finds 1/`x`, but define 1/0 as  
-    """
-    out = x.copy()
-    out[x == 0] = undefined
-    out[x != 0] = 1/out[x != 0]
-    return out
-
-def scale_diagonals_to_1(Psi):
-    """
-    Scales rows and columns equally such that
-    the diagonals of the input are all equal to 1.
-    
-    Note: an interesting phenomenon is that sometimes
-    the lstsq solver that generates Psi 'breaks' and
-    puts negatives on the diagonals, but if we just ignore
-    them then everything seems to work out.
-    """
-    diags = np.diag(Psi).copy()
-    diags = np.abs(diags)
-    D = np.diag(safe_divide(np.sqrt(diags)))
-    return D @ Psi @ D
-
-def crush_rows(X: "(n, n) Matrix") -> "(n-1, n) Matrix":
-    """
-    'Crush' the rows of Psi, so that the diagonals disappear, i.e.:
-     _ a b
-     c _ d
-     e f _
-    crushed becomes:
-      a b
-      c d
-      e f
-    """
-    x = X.shape[0]
-    s0, s1 = X.strides
-    return np.lib.stride_tricks.as_strided(
-        X.ravel()[1:],
-        shape=(x - 1, x),
-        strides=(s0 + s1, s1)
-    ).reshape(x, -1)
-
-def uncrush_rows(
-    X: "(n-1, n) Matrix",
-    d: "scalar, value to fill diagonals with" = 1
-) -> "(n, n) Matrix":
-    """
-    The inverse operation of `crush_rows`
-    """
-    n = X.shape[1]
-    out = d * np.eye(n)
-    np.place(out, out == 0, X)
-    return out
+def K(
+    shape: "Size of matrix (scalar, not tuple)",
+    a: "Scalar",
+    b: "Scalar"
+) -> "Square matrix with shape `shape`, diagonals `a`, off-diagonals `b`":
+    I = np.eye(shape)
+    J = np.ones((shape, shape))
+    return a * I + b * (J - I)
