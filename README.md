@@ -72,7 +72,7 @@ is a heavily overdetermined linear system.  I just haven't gotten around to actu
 
 Given precision matrices, we generate gaussian matrix data using the matrix-variate normal with
 Kronecker Sum structure.  The precision matrices are generated using a 'base' positive definite
-matrix varaite distribution (specifically the Inverse Wishart), and then 'sparsifying' them
+matrix variate distribution (specifically the Inverse Wishart), and then 'sparsifying' them
 by Hadamard-producting them with some positive definite masking matrix represented as the
 outer product of an i.i.d. vector of bernoulli variables with itself (and then manually setting
 the diagonals to 1).
