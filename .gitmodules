@@ -1,0 +1,3 @@
+[submodule "EiGLasso"]
+	path = EiGLasso
+	url = https://github.com/SeyoungKimLab/EiGLasso/

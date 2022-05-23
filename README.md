@@ -8,8 +8,12 @@ There are two variants of the algorithm - one with optimal space complexity
 of the approximation, here we set `b=10`) and one with poor space complexity
 but better performance.  The latter one is called 'Hungry anBiGLasso'.
 
-Also implemented are the scBiGLasso algorithm and _(not yet but soon)_ the
-TeraLasso algorithm, for comparisons.
+## Other BiGraphical Lasso Algorithms
+
+We have a custom implementation of scBiGLasso (this project initially started
+out as just a Python implementation of that algorithm before the trick to
+remove iterativeness was discovered).  We also have added EiGLasso as a git submodule,
+the main repository for that is at https://github.com/SeyoungKimLab/EiGLasso.
 
 ## Practical Performance
 
