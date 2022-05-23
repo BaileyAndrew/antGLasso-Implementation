@@ -62,7 +62,8 @@ results are substantially worse:
 
 #### Hard anBiGLasso Results
 
-_todo: nonhungry hard results_
+![scBiGLasso Results](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Vary%20Sizes%20-%20anBiGLasso%20-%20Hard%20-%20Approx/Precision-Recall-Vary-Sizes-40.png)
+
 
 ##### Hungry Hard anBiGLasso Results
 
