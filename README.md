@@ -58,7 +58,7 @@ whereas the well-nourished (?) algorithm does slightly worse.
 ![scBiGLasso Results](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Vary%20Sizes%20-%20scBiGLasso%20-%20Easy/Precision-Recall-Vary-Sizes-100.png)
 
 However, these results are just for the aforementioned 'easy' data.  For hard data, the
-results are substantially worse:
+results are worse:
 
 #### Hard anBiGLasso Results
 
