@@ -4,13 +4,18 @@ from Scripts.utilities import K, LASSO
 def anBiGLasso(
     Ys: "(m, n, p) input tensor",
     beta_1: "L1 penalty for Psi",
-    beta_2: "L1 penalty for Theta"
+    beta_2: "L1 penalty for Theta",
+    B_approx_iters: (int, "Hyperparameter") = 10
 ):
+    """
+    See `calculateEigenvalues` for explanation of
+    `B_approx_iters`.
+    """
     (m, n, p) = Ys.shape
     T = np.einsum("mnp, mlp -> nl", Ys, Ys) / (m*p)
     S = np.einsum("mnp, mnl -> pl", Ys, Ys) / (m*n)
     U, V = eigenvectors_MLE(T, S)
-    u, v = eigenvalues_MLE(Ys, U, V)
+    u, v = eigenvalues_MLE(Ys, U, V, B_approx_iters)
     Psi = U @ np.diag(u) @ U.T
     Theta = V @ np.diag(v) @ V.T
     
@@ -79,9 +84,15 @@ def calculateSigmas(
 
 def calculateEigenvalues(
     Sigmas: "(n, p) tensor",
+    B_approx_iters: int
 ):
     """
     Solves system of linear equations for the eigenvalues
+    `B_approx_iters` is how many times to run the least
+    squares computation on partial data.  If it is -1,
+    then we run the computation on the whole data.  This
+    is the most accurate, but increases space complexity
+    from a quadratic to a cubic polynomial.
     
     An implementation of Lemma 3
     """
@@ -89,45 +100,44 @@ def calculateEigenvalues(
     (n, p) = Sigmas.shape
     invSigs = 1 / Sigmas
     
-    
     a = invSigs.T.reshape((n*p,))
-    B = np.empty((
-        n * p, n + p 
-    ))
-    for row in range(n*p):
-        i = row % n
-        j = row // n
-        B[row, :] = 0
-        B[row, i] = 1
-        B[row, n+j] = 1
-    
-    Ls = np.linalg.lstsq(B, a, rcond=None)[0]
-    print(Ls)
-    Ls = np.zeros((n+p,))
-    iters = 10
-    for i in range(iters):
-        B_ = np.concatenate(
-            [
-                B[i*n:(i+1)*n],
-                B[i::n]
-            ]
-        )
-        a_ = np.concatenate(
-            [
-                a[i*n:(i+1)*n],
-                a[i::n]
-            ]
-        )
-        Ls += np.linalg.lstsq(B_, a_, rcond=None)[0]
-    Ls /= iters
-    print(Ls)
-    #print(B_)
-    
-    
-    
-    #print(Ls)
-    #Ls = np.linalg.lstsq(B_, a_, rcond=None)[0]
-    #print(Ls)
+    if B_approx_iters == -1:
+        # Most accurate, but increases space complexity
+        # from n^2 + p^2 to pn^2 + np^2 !!
+        B = np.empty((
+            n * p, n + p 
+        ))
+        for row in range(n*p):
+            i = row % n
+            j = row // n
+            B[row, :] = 0
+            B[row, i] = 1
+            B[row, n+j] = 1
+
+        Ls = np.linalg.lstsq(B, a, rcond=None)[0]
+    else:
+        # Less accurate, 
+        Ls = np.zeros((n+p,))
+        for it in range(B_approx_iters):
+            a_ = np.empty((n+p,))
+            B_ = np.zeros((n+p, n+p))
+            for row in range(n + p):
+                # First, figure out what row
+                # we want from the full B
+                if row < n:
+                    # Get all terms involving ith eigenvector of Psi
+                    true_row = it*n + row
+                else:
+                    # Get all terms involving ith eigenvector of Theta
+                    true_row = it + (row-n)*n
+                i = true_row % n
+                j = true_row // n
+                B_[row, :] = 0
+                B_[row, i] = 1
+                B_[row, n+j] = 1
+                a_[row] = a[true_row]
+            Ls += np.linalg.lstsq(B_, a_, rcond=None)[0]
+        Ls /= B_approx_iters
     
     return Ls[:n], Ls[n:]
 
@@ -135,11 +145,12 @@ def eigenvalues_MLE(
     Ys: "(m, n, p) tensor",
     U: "(n, n) eigenvectors of Psi",
     V: "(p, p) eigenvectors of Theta",
+    B_approx_iters: int
 ):
     """
     An implementation of Theorem 2
     """
     Xs = rescaleYs(Ys, U, V)
     Sigmas = calculateSigmas(Xs)
-    u, v = calculateEigenvalues(Sigmas)
+    u, v = calculateEigenvalues(Sigmas, B_approx_iters)
     return u, v
