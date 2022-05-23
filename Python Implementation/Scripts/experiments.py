@@ -53,7 +53,8 @@ def get_cms_for_betas(
                 Psi, Theta = anBiGLasso(
                     Ys=Ys,
                     beta_1=b,
-                    beta_2=b
+                    beta_2=b,
+                    **kwargs_lasso
                 )
             else:
                 raise ValueError(f"no such algorithm {alg}")
@@ -115,7 +116,8 @@ def create_precision_recall_curves(
     attempts: "Number of times to average over" = 100,
     verbose: bool = False,
     alg: str = "scBiGLasso",
-    df_scale: "int >= 1" = 1
+    df_scale: "int >= 1" = 1,
+    B_approx_iters: int = 10
 ):
     """
     Given a list of L1 penalties, calculate the 
@@ -136,7 +138,9 @@ def create_precision_recall_curves(
             "eps": 10e-3,
         }
     elif alg == "anBiGLasso":
-        kwargs_lasso = dict({})
+        kwargs_lasso = {
+            "B_approx_iters": B_approx_iters
+        }
     else:
         raise ValueError(f"no such algorithm {alg}")
 
