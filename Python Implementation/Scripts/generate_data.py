@@ -32,7 +32,7 @@ def matrix_normal_ks(
     
     # Note that shape is (n, size) instead of standard (size, n)
     # to make the batched matrix multiplication easier
-    z: "`size` independent samples of n-dimensional i.i.d. gaussian vector"
+    z: "`size` independent samples of np-dimensional i.i.d. gaussian vector"
     z = multivariate_normal(cov=1).rvs(
         size=size*(n*p)
     ).reshape(n*p, size)
@@ -41,6 +41,37 @@ def matrix_normal_ks(
     Ys_vec: "Vectorized version of output matrix" = (A @ z).T
     #Ys = np.transpose(Ys_vec.reshape((size, n, p)), [0, 2, 1])
     Ys = Ys_vec.reshape((size, n, p))
+    
+    return Ys
+
+def fast_matrix_normal_ks(
+    Psi: "(Positive Definite) (n, n) Precision Matrix",
+    Theta: "(Positive Definite) (p, p) Precision Matrix",
+    size: "Number of Samples"
+):
+    """
+    Kronecker Sum structured matrix-variate gaussian distribution
+    
+    Based on Lemma 1
+    """
+    
+    n = Psi.shape[0]
+    p = Theta.shape[0]
+    
+    u, U = np.linalg.eigh(Psi)
+    v, V = np.linalg.eigh(Theta)    
+    
+    diag_precisions = kron_sum_diag(u, v)
+    
+    # Note that shape is (n, size) instead of standard (size, n)
+    # to make the batched matrix multiplication easier
+    z: "`size` independent samples of np-dimensional gaussian vector"
+    z = multivariate_normal(cov=1).rvs(
+        size=size*(n*p)
+    ).reshape(size, n*p) / np.sqrt(diag_precisions)
+    
+    Xs: "Sample of diagonalized distribution" = z.reshape(size, n, p)
+    Ys: "Sample of true distribution" = U @ Xs @ V.T
     
     return Ys
 
@@ -116,7 +147,9 @@ def generate_Ys(
         ).rvs(size=m)
     elif structure == "Kronecker Sum":
         # Based on SVD.
-        Ys = matrix_normal_ks(Psi, Theta, m)
+        #Ys = matrix_normal_ks(Psi, Theta, m)
+        # Based on Lemma 1
+        Ys = fast_matrix_normal_ks(Psi, Theta, m)
     elif structure == "Inefficient Kronecker Sum":
         # Generates from first principles, very slow for medium-large inputs
         # but useful when testing speedups to the `Kronecker Sum` structure
