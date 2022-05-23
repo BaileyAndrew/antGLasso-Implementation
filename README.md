@@ -42,8 +42,8 @@ _(TODO: Look at performance on real data)_
 
 You get roughly the same precision-recall curves regardless of the size of the input
 data (but the best L1 penalties will be different).  We can see that anBiGLasso gets
-roughly the same results as scBiGLasso - it might even be a bit better, but only
-slightly.
+roughly the same results as scBiGLasso - the hungry algorithm does slightly better,
+whereas the well-nourished (?) algorithm does slightly worse.
 
 #### anBiGLasso Results
 
