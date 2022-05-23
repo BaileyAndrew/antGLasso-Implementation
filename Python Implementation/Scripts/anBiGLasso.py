@@ -102,23 +102,27 @@ def calculateEigenvalues(
         B[row, n+j] = 1
     
     Ls = np.linalg.lstsq(B, a, rcond=None)[0]
-    
-    
-    """
-    B_ = np.concatenate(
-        [
-            B[:n],
-            B[n::n]
-        ]
-    )
-    a_ = np.concatenate(
-        [
-            a[:n],
-            a[n::n]
-        ]
-    )
+    print(Ls)
+    Ls = np.zeros((n+p,))
+    iters = 10
+    for i in range(iters):
+        B_ = np.concatenate(
+            [
+                B[i*n:(i+1)*n],
+                B[i::n]
+            ]
+        )
+        a_ = np.concatenate(
+            [
+                a[i*n:(i+1)*n],
+                a[i::n]
+            ]
+        )
+        Ls += np.linalg.lstsq(B_, a_, rcond=None)[0]
+    Ls /= iters
+    print(Ls)
     #print(B_)
-    """
+    
     
     
     #print(Ls)
