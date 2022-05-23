@@ -54,8 +54,12 @@ results are substantially worse:
 
 #### Hard scBiGLasso Results
 
-_(Todo: add this - it seems to do terribly but I forgot to save the figures, rerunning
-the experiment atm...)_
+_(It takes 5 hours to generate this graph!  B/c it's slow on hard data)_
+
+![scBiGLasso Results](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Vary%20Sizes%20-%20scBiGLasso%20-%20Hard/Precision-Recall-Vary-Sizes-40.png)
+
+We can see that the scBiGLasso results on 'hard' data are nonsense - this is because the algorithm
+did not converge within 100 iterations, so we cut it off.
 
 ## Asymptotic Performance
 
@@ -63,4 +67,16 @@ The current implementation of anBiGLasso has the unideal space complexity $O(mnp
 but I'm extremely confident I can get this down to $O(mnp + n^2 + p^2)$ (the size of the inputs
 plus the outputs).  The extra complexity comes from creating an $(np, n+p)$-sized matrix, which
 is a heavily overdetermined linear system.  I just haven't gotten around to actually doing that yet.
+
+## Data
+
+Given precision matrices, we generate gaussian matrix data using the matrix-variate normal with
+Kronecker Sum structure.  The precision matrices are generated using a 'base' positive definite
+matrix variate distribution (specifically the Inverse Wishart), and then 'sparsifying' them
+by Hadamard-producting them with some positive definite masking matrix represented as the
+outer product of an i.i.d. vector of bernoulli variables with itself (and then manually setting
+the diagonals to 1).
+
+The Nonparanormal Skeptic layer is not currently implemented, in fact it is nontrivial to implement
+as our algorithm needs the raw data to work - it cannot be framed as a function of covariance matrices.
 
