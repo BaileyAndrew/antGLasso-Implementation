@@ -3,12 +3,20 @@
 This is a non-iterative algorithm for estimating the two constituent
 precision matrices of matrix data (within-row and within-column precisions).
 
+There are two variants of the algorithm - one with optimal space complexity
+(whose performance is dependent on a hyperparameter `b` controlling the goodness
+of the approximation, here we set `b=10`) and one with poor space complexity
+but better performance.  The latter one is called 'Hungry anBiGLasso'.
+
 Also implemented are the scBiGLasso algorithm and _(not yet but soon)_ the
 TeraLasso algorithm, for comparisons.
 
 ## Practical Performance
 
 _(TODO: Compare with TeraLasso)_
+
+All comparisons are done using a large number of samples.  For a small number of samples,
+results may be different.
 
 ### Runtimes
 
@@ -39,7 +47,11 @@ slightly.
 
 #### anBiGLasso Results
 
-![anBiGLasso Results](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Vary%20Sizes%20-%20anBiGLasso%20-%20Easy/Precision-Recall-Vary-Sizes-100.png)
+![anBiGLasso Results](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Vary%20Sizes%20-%20anBiGLasso%20-%20Easy%20-%20Approx/Precision-Recall-Vary-Sizes-100.png)
+
+##### Hungry anBiGLasso
+
+![hungry anBiGLasso Results](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Vary%20Sizes%20-%20anBiGLasso%20-%20Easy/Precision-Recall-Vary-Sizes-100.png)
 
 #### scBiGLasso Results
 
@@ -49,6 +61,10 @@ However, these results are just for the aforementioned 'easy' data.  For hard da
 results are substantially worse:
 
 #### Hard anBiGLasso Results
+
+_todo: nonhungry hard results_
+
+##### Hungry Hard anBiGLasso Results
 
 ![anBiGLasso Results](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Vary%20Sizes%20-%20anBiGLasso%20-%20Hard/Precision-Recall-Vary-Sizes-40.png)
 
@@ -63,10 +79,13 @@ did not converge within 100 iterations, so we cut it off.
 
 ## Asymptotic Performance
 
-The current implementation of anBiGLasso has the unideal space complexity $O(mnp + n^2p + p^2n)$,
-but I'm extremely confident I can get this down to $O(mnp + n^2 + p^2)$ (the size of the inputs
-plus the outputs).  The extra complexity comes from creating an $(np, n+p)$-sized matrix, which
-is a heavily overdetermined linear system.  I just haven't gotten around to actually doing that yet.
+The hungry implementation of anBiGLasso has the unideal space complexity $O(mnp + n^2p + p^2n)$,
+but the non-hungry version has a space complexity of $O(mnp + n^2 + p^2)$
+(the size of the inputs plus the outputs).
+
+Time complexity is $O(mn^2p + mnp^2 + b(n^3 + p^3 + n^2p + p^2n))$.  In practice $b$ is constant,
+it does not seem to need to be increased for larger data.  (However, it could be that the best
+value grows with the log of the data, I haven't investigated...)
 
 ## Data
 
