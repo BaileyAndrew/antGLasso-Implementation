@@ -19,6 +19,11 @@ following the instructions of the authors of EiGLasso.  This could add some over
 but since the other algorithms are implemented in Python (a language not known for speed)
 we are hopeful that this does not substantially affect the analysis.
 
+We use the out-of-the-box hyperparameters of EiGLasso.  It could be possible to
+perform better with more precisely tuned parameters.  However, one of the advantages
+of anBiGLasso is its lack of hyperparameters, except for `b` which has a straightforward
+interpretion (large `b` means more accurate but longer runtime).
+
 ## Practical Performance
 
 All comparisons are done using a large number of samples.  For a small number of samples,
