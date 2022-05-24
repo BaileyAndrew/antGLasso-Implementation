@@ -13,18 +13,31 @@ but better performance.  The latter one is called 'Hungry anBiGLasso'.
 We have a custom implementation of scBiGLasso (this project initially started
 out as just a Python implementation of that algorithm before the trick to
 remove iterativeness was discovered).  We also have added EiGLasso as a git submodule,
-the main repository for that is at https://github.com/SeyoungKimLab/EiGLasso.
+the main repository for that is at https://github.com/SeyoungKimLab/EiGLasso.  To
+compare against EiGLasso (which is implemented in C++), we interface through Matlab
+following the instructions of the authors of EiGLasso.  This could add some overhead,
+but since the other algorithms are implemented in Python (a language not known for speed)
+we are hopeful that this does not substantially affect the analysis.
 
 ## Practical Performance
-
-_(TODO: Compare with TeraLasso)_
 
 All comparisons are done using a large number of samples.  For a small number of samples,
 results may be different.
 
+### Summary
+
+anBiGLasso and EiGLasso are roughly the same speed.  EiGLasso is slightly faster unless
+it is on 'hard' data, in which case anBiGLasso is slightly faster.  These differences
+are likely due to the precise implementation of the algorithms.
+anBiGLasso is faster than scBiGLasso, especially on 'hard' data (on which scBiGLasso takes far too long)
+
+'Hungry' anBiGLasso does the best, but has nonoptimal asymptotic complexity.  We can
+tweak it to have optimal complexity at the cost of runtime (negligible) and performance
+(noticeable but not by much, slightly worse than scBiGLasso).
+
 ### Runtimes
 
-scBiGLasso and TeraLasso are iterative algorithms, which means their speed can
+scBiGLasso and EiGLasso are iterative algorithms, which means their speed can
 vary substantially depending on how fast they converge.  Empirically I've noticed
 that you will get quick convergence (and good precision/recall) if your
 precision matrices are drawn from the Inverse Wishart Distribution with degrees
@@ -40,14 +53,19 @@ results.  We look at both of these cases.
 
 ![HardData](Plots/Runtimes%20Comparison/Compare%20Runtimes%20Hard%20Data.png)
 
+It can be hard to compare anBiGLasso and EiGLasso in this plot, as they are
+both very quick.
+
+![HardData2](Plots/Runtimes%20Comparison/Compare%20Runtimes%20Hard%20Data%20No%20scBiGLasso.png)
+
 ### Results
 
 _(TODO: Look at performance on real data)_
 
 You get roughly the same precision-recall curves regardless of the size of the input
-data (but the best L1 penalties will be different).  We can see that anBiGLasso gets
+data (but the best L1 penalties will be different) for anBiGLasso.  We can see that anBiGLasso gets
 roughly the same results as scBiGLasso - the hungry algorithm does slightly better,
-whereas the well-nourished (?) algorithm does slightly worse.
+whereas the well-nourished (?) algorithm does slightly worse.  EiGLasso does interestingly.
 
 #### anBiGLasso Results
 
@@ -60,6 +78,10 @@ whereas the well-nourished (?) algorithm does slightly worse.
 #### scBiGLasso Results
 
 ![scBiGLasso Results](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Vary%20Sizes%20-%20scBiGLasso%20-%20Easy/Precision-Recall-Vary-Sizes-100.png)
+
+#### EiGLasso Results
+
+![EiGLasso Results](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Vary%20Sizes%20-%20EiGLasso%20-%20Easy/Precision-Recall-Vary-Sizes-100.png)
 
 However, these results are just for the aforementioned 'easy' data.  For hard data, the
 results are worse:
@@ -81,6 +103,10 @@ _(It takes 5 hours to generate this graph!  B/c it's slow on hard data)_
 
 We can see that the scBiGLasso results on 'hard' data are nonsense - this is because the algorithm
 did not converge within 100 iterations, so we cut it off.
+
+#### Hard EiGLasso Results
+
+![EiGLasso Results](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Vary%20Sizes%20-%20EiGLasso%20-%20Hard/Precision-Recall-Vary-Sizes-40.png)
 
 ## Asymptotic Performance
 
