@@ -9,6 +9,7 @@ from Scripts.generate_data import *
 from Scripts.utilities import *
 from Scripts.scBiGLasso import *
 from Scripts.anBiGLasso import *
+from Scripts.EiGLasso import *
 
 def get_cms_for_betas(
     betas_to_try: "List of L1 penalties to try",
@@ -51,6 +52,13 @@ def get_cms_for_betas(
                 )
             elif alg == "anBiGLasso":
                 Psi, Theta = anBiGLasso(
+                    Ys=Ys,
+                    beta_1=b,
+                    beta_2=b,
+                    **kwargs_lasso
+                )
+            elif alg == "EiGLasso":
+                Psi, Theta = EiGLasso(
                     Ys=Ys,
                     beta_1=b,
                     beta_2=b,
@@ -117,7 +125,8 @@ def create_precision_recall_curves(
     verbose: bool = False,
     alg: str = "scBiGLasso",
     df_scale: "int >= 1" = 1,
-    B_approx_iters: int = 10
+    B_approx_iters: int = 10,
+    cm_mode = "Negative"
 ):
     """
     Given a list of L1 penalties, calculate the 
@@ -141,6 +150,8 @@ def create_precision_recall_curves(
         kwargs_lasso = {
             "B_approx_iters": B_approx_iters
         }
+    elif alg == "EiGLasso":
+        kwargs_lasso = dict({})
     else:
         raise ValueError(f"no such algorithm {alg}")
 
@@ -150,7 +161,8 @@ def create_precision_recall_curves(
         kwargs_gen=kwargs_gen,
         kwargs_lasso=kwargs_lasso,
         verbose=verbose,
-        alg=alg
+        alg=alg,
+        cm_mode=cm_mode
     )
     
     return make_cm_plots(
