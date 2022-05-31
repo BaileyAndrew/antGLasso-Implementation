@@ -11,6 +11,7 @@ eng = matlab.engine.start_matlab()
 # thankfully smart enough to tell you!  Try running code with
 # `eng` and if it fails, it should tell you the path to put
 # in this function.
+# TODO: consider eng.cd(...) instead
 eng.addpath(
     '/Users/baileyandrew/Desktop/Python Notebooks.nosync/Research/scBiGLasso '
     + 'Implementation/EiGLasso/EiGLasso_JMLR'

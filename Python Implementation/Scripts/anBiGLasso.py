@@ -1,16 +1,20 @@
 import numpy as np
 from Scripts.utilities import K, LASSO
+from Scripts.nonparanormal import nonparanormal
 
 def anBiGLasso(
     Ys: "(m, n, p) input tensor",
     beta_1: "L1 penalty for Psi",
     beta_2: "L1 penalty for Theta",
-    B_approx_iters: (int, "Hyperparameter") = 10
+    B_approx_iters: (int, "Hyperparameter") = 10,
+    use_nonparanormal: bool = False
 ):
     """
     See `calculateEigenvalues` for explanation of
     `B_approx_iters`.
     """
+    if use_nonparanormal:
+        Ys = nonparanormal(Ys)
     (m, n, p) = Ys.shape
     
     if B_approx_iters > min(B_approx_iters, min(n, p)):
