@@ -10,6 +10,9 @@ def nonparanormal(
     Implements the nonparanormal trick from the paper
     "The Nonparanormal: Semiparametric Estimation of High Dimensional Undirected Graphs"
     by Liu, Lafferty, and Wasserman
+    
+    Pretty sure I implemented this wrong!
+    But we don't use it anywhere
     """
     
     m, n, p = Ys.shape

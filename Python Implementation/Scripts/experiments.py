@@ -11,6 +11,7 @@ from Scripts.scBiGLasso import *
 from Scripts.anBiGLasso import *
 from Scripts.EiGLasso import *
 from Scripts.anBiGLasso_cov import anBiGLasso as anBiGLasso_cov
+from Scripts.nonparanormal_skeptic import *
 
 def get_cms_for_betas(
     betas_to_try: "List of L1 penalties to try",
@@ -60,6 +61,15 @@ def get_cms_for_betas(
                 )
             elif alg == "anBiGLasso_cov":
                 T, S = calculate_empirical_covariance_matrices(Ys)
+                Psi, Theta = anBiGLasso_cov(
+                    T=T,
+                    S=S,
+                    beta_1=b,
+                    beta_2=b,
+                    **kwargs_lasso
+                )
+            elif alg == "anBiGLasso_cov_with_skeptic":
+                T, S = nonparanormal_skeptic(Ys)
                 Psi, Theta = anBiGLasso_cov(
                     T=T,
                     S=S,
@@ -156,7 +166,7 @@ def create_precision_recall_curves(
             "N": 100,
             "eps": 10e-3,
         }
-    elif alg == "anBiGLasso" or alg == "anBiGLasso_cov":
+    elif alg == "anBiGLasso" or alg == "anBiGLasso_cov" or alg == "anBiGLasso_cov_with_skeptic":
         kwargs_lasso = {
             "B_approx_iters": B_approx_iters
         }

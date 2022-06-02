@@ -7,14 +7,11 @@ def anBiGLasso(
     beta_1: "L1 penalty for Psi",
     beta_2: "L1 penalty for Theta",
     B_approx_iters: (int, "Hyperparameter") = 10,
-    use_nonparanormal: bool = False
 ):
     """
     See `calculateEigenvalues` for explanation of
     `B_approx_iters`.
     """
-    if use_nonparanormal:
-        Ys = nonparanormal(Ys)
     (m, n, p) = Ys.shape
     
     if B_approx_iters > min(B_approx_iters, min(n, p)):
@@ -26,7 +23,7 @@ def anBiGLasso(
         
     T, S = calculate_empirical_covariances(Ys)
     U, V = eigenvectors_MLE(T, S)
-    u, v = eigenvalues_MLE(Ys, U, V, B_approx_iters, {'T': T, 'S': S})
+    u, v = eigenvalues_MLE(Ys, U, V, B_approx_iters)
     Psi = U @ np.diag(u) @ U.T
     Theta = V @ np.diag(v) @ V.T
     
@@ -178,14 +175,6 @@ def eigenvalues_MLE(
     """
     Xs = (rescaleYs(Ys, U, V))
     Sigmas = calculateSigmas(Xs)
-    
-    # TEST vvv
-    m, n, p = Ys.shape
-    T = for_testing_params['T']
-    S = for_testing_params['S']
-    Sigmas = U.shape[0] * np.diag(U.T @ T @ U)
-    Sigmas = np.tile(Sigmas.reshape(n, 1), (1, p))
-    # TEST ^^^
     
     u, v = calculateEigenvalues(Sigmas, B_approx_iters)
     return u, v

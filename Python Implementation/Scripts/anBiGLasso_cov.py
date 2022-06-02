@@ -80,19 +80,6 @@ def eigenvectors_MLE(
     
     return U, V
 
-def rescaleYs(
-    Ys: "(m, n, p) tensor, m samples of (n, p) matrix",
-    U: "(n, n) eigenvectors of Psi",
-    V: "(p, p) eigenvectors of Theta"
-) -> "(m, p, n) tensor":
-    """
-    Rescales our input data to be drawn from a kronecker sum
-    distribution with parameters being the eigenvalues
-    
-    An implementation of Lemma 1
-    """
-    return U.T @ Ys @ V
-
 def calculateSigmas(
     Xs: "(m, n, p) tensor, m samples of (n, p) matrix"
 ) -> "(n, p) tensor: n slices of diagonals of (n, p, p) covariance matrix":
