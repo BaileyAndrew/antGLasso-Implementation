@@ -10,6 +10,8 @@ import warnings
 # for testing
 from Scripts.utilities import kron_sum_diag, tr_p, K
 
+from Scripts.anBiGLasso import shrink
+
 # Note: in matrix variable name subscripts:
 # 'sisj' will represent '\i\j'
 # i.e. s = \
@@ -164,8 +166,9 @@ def scBiGLasso(
     (m, n, p) = Ys.shape
     T_psi: "(Average) empirical covariance matrix for Psi"
     T_theta: "(Average) empirical covariance matrix for Theta"
-    T_psi = np.einsum("mnp, mlp -> nl", Ys, Ys) / (m*p)
-    T_theta = np.einsum("mnp, mnl -> pl", Ys, Ys) / (m*n)
+    #T_psi = np.einsum("mnp, mlp -> nl", Ys, Ys) / (m*p)
+    #T_theta = np.einsum("mnp, mnl -> pl", Ys, Ys) / (m*n)
+    T_psi, T_theta = calculate_empirical_covariance_matrices(Ys)
     
     if Psi_init is None:
         Psi_init = T_psi
@@ -257,3 +260,17 @@ def scBiGLasso(
     """
     
     return Psi, Theta
+
+def calculate_empirical_covariance_matrices(
+    Ys: "(m, n, p)"
+) -> ("(n, n), (p, p)"):
+    """
+    Equivalent to:
+    T = np.einsum("mnp, mlp -> nl", Ys, Ys) / (m*p)
+    S = np.einsum("mnp, mnl -> pl", Ys, Ys) / (m*n)
+    but faster
+    """
+    m, n, p = Ys.shape
+    T = (Ys @ Ys.transpose([0, 2, 1])).mean(axis=0) / p
+    S = (Ys.transpose([0, 2, 1]) @ Ys).mean(axis=0) / n
+    return T, S

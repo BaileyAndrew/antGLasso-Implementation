@@ -26,7 +26,7 @@ def anBiGLasso(
         
     T, S = calculate_empirical_covariances(Ys)
     U, V = eigenvectors_MLE(T, S)
-    u, v = eigenvalues_MLE(Ys, U, V, B_approx_iters)
+    u, v = eigenvalues_MLE(Ys, U, V, B_approx_iters, {'T': T, 'S': S})
     Psi = U @ np.diag(u) @ U.T
     Theta = V @ np.diag(v) @ V.T
     
@@ -170,12 +170,22 @@ def eigenvalues_MLE(
     Ys: "(m, n, p) tensor",
     U: "(n, n) eigenvectors of Psi",
     V: "(p, p) eigenvectors of Theta",
-    B_approx_iters: int
+    B_approx_iters: int,
+    for_testing_params = None
 ):
     """
     An implementation of Theorem 2
     """
-    Xs = rescaleYs(Ys, U, V)
+    Xs = (rescaleYs(Ys, U, V))
     Sigmas = calculateSigmas(Xs)
+    
+    # TEST vvv
+    m, n, p = Ys.shape
+    T = for_testing_params['T']
+    S = for_testing_params['S']
+    Sigmas = U.shape[0] * np.diag(U.T @ T @ U)
+    Sigmas = np.tile(Sigmas.reshape(n, 1), (1, p))
+    # TEST ^^^
+    
     u, v = calculateEigenvalues(Sigmas, B_approx_iters)
     return u, v

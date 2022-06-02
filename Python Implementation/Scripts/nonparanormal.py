@@ -24,9 +24,9 @@ def nonparanormal(
     
     # Note that in the paper, F_hat_j just counts average number of elements in the
     # jth position that the element at the jth position is less than or equal to
-    # Note that 4 - np.argsort([11, 10, 12, 9]) gives [2, 3, 1, 4] which is
-    # exactly what we want! (4 comes from length of list)
-    F_hat = 1 - np.argsort(Ys, axis=0) / m
+    # Note that 1 + np.argsort([11, 10, 12, 9]) gives [3, 2, 4, 1] which is
+    # exactly what we want! 
+    F_hat: "(m, n, p)" = (1 + np.argsort(Ys, axis=0)) / m
    
     # Now truncate to get F_tilde
     F_hat[F_hat < delta_m] = delta_m
