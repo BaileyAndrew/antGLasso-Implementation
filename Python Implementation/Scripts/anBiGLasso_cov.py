@@ -35,20 +35,6 @@ def anBiGLasso(
     
     return Psi, Theta
 
-def calculate_empirical_covariances(
-    Ys: "(m, n, p)"
-) -> ("(n, n), (p, p)"):
-    """
-    Equivalent to:
-    T = np.einsum("mnp, mlp -> nl", Ys, Ys) / (m*p)
-    S = np.einsum("mnp, mnl -> pl", Ys, Ys) / (m*n)
-    but faster
-    """
-    m, n, p = Ys.shape
-    T = (Ys @ Ys.transpose([0, 2, 1])).mean(axis=0) / p
-    S = (Ys.transpose([0, 2, 1]) @ Ys).mean(axis=0) / n
-    return T, S
-
 def shrink(
     Psi: "Matrix to shrink row by row",
     b: "L1 penalty per row"
