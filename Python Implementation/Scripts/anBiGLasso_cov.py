@@ -1,6 +1,7 @@
 import numpy as np
 from Scripts.utilities import K, LASSO
 from Scripts.nonparanormal import nonparanormal
+from Scripts.anBiGLasso import shrink
 
 def anBiGLasso(
     T: "(n, n) within-row covariance matrix",
@@ -34,19 +35,6 @@ def anBiGLasso(
         Theta = shrink(Theta, beta_2)
     
     return Psi, Theta
-
-def shrink(
-    Psi: "Matrix to shrink row by row",
-    b: "L1 penalty per row"
-) -> "L1-shrunk Psi":
-    n = Psi.shape[0]
-    for r in range(n):
-        row = np.delete(Psi[r, :], r, axis=0)
-        row = LASSO(np.eye(n-1), row, b)
-        Psi[r, :r] = row[:r]
-        Psi[r, r+1:] = row[r:]
-        Psi[:, r] = Psi[r, :]
-    return Psi
 
 def eigenvectors_MLE(
     T: "Within-row empirical covariance matrix",

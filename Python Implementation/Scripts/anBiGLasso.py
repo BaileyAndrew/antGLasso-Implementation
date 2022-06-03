@@ -49,16 +49,27 @@ def calculate_empirical_covariances(
     return T, S
 
 def shrink(
-    Psi: "Matrix to shrink row by row",
-    b: "L1 penalty per row"
+    Psi: "Matrix to shrink",
+    b: "L1 penalty",
+    mode: ("Row by Row", "Upper Triangle") = "Row by Row"
 ) -> "L1-shrunk Psi":
-    n = Psi.shape[0]
-    for r in range(n):
-        row = np.delete(Psi[r, :], r, axis=0)
-        row = LASSO(np.eye(n-1), row, b)
-        Psi[r, :r] = row[:r]
-        Psi[r, r+1:] = row[r:]
-        Psi[:, r] = Psi[r, :]
+    
+    if mode == "Row by Row":
+        n = Psi.shape[0]
+        for r in range(n):
+            row = np.delete(Psi[r, :], r, axis=0)
+            row = LASSO(np.eye(n-1), row, b)
+            Psi[r, :r] = row[:r]
+            Psi[r, r+1:] = row[r:]
+            Psi[:, r] = Psi[r, :]
+    elif mode == "Upper Triangle":
+        n = Psi.shape[0]
+        s = (Psi.size - n)//2
+        tridx = np.triu_indices_from(Psi, 1)
+        Psi[tridx] = LASSO(np.eye(s), Psi[tridx], b * s)
+        Psi = Psi + Psi.T - np.diag(np.diag(Psi))
+    else:
+        raise ValueError(f"No such mode `{mode}`")
     return Psi
 
 def eigenvectors_MLE(

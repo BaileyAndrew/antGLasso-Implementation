@@ -148,27 +148,22 @@ def _scBiGLasso_internal(
         log_det: "dummy value, not used" = 0
     return out_Psi, log_det
 
-def scBiGLasso(
+def scBiGLasso_cov(
     N: "Maximum iteration number",
     eps: "Tolerance",
-    Ys: "m by p by n tensor, m slices of observed p by n matrix Y_k",
+    T: "(n, n)",
+    S: "(p, p)",
     beta_1: "Psi's L1 penalty",
     beta_2: "Theta's L1 penalty",
     Psi_init: "n by n initial estimate for Psi" = None,
     Theta_init: "p by p initial estimate for Theta" = None,
     verbose: bool = False
 ) -> ("Psi", "Theta"):
-    # If m=1 (only one observation), we allow p by n matrix as input
-    # by just adding an extra initial dimension of length 1
-    if len(Ys.shape) == 2:
-        Ys = Ys[np.newaxis, :, :]
         
-    (m, n, p) = Ys.shape
-    T_psi: "(Average) empirical covariance matrix for Psi"
-    T_theta: "(Average) empirical covariance matrix for Theta"
-    #T_psi = np.einsum("mnp, mlp -> nl", Ys, Ys) / (m*p)
-    #T_theta = np.einsum("mnp, mnl -> pl", Ys, Ys) / (m*n)
-    T_psi, T_theta = calculate_empirical_covariance_matrices(Ys)
+    n, _ = T.shape
+    p, _ = S.shape
+    T_psi = T
+    T_theta = S
     
     if Psi_init is None:
         Psi_init = T_psi
@@ -242,24 +237,30 @@ def scBiGLasso(
                     print(f"Early convergence on iteration {tau}!")
                 break
             old_convergence_checks = old_convergence_checks[1:]
-            
-    # For testing
-    """
-    u, U = np.linalg.eigh(Psi)
-    v, V = np.linalg.eigh(Theta)
-    trpD = tr_p(np.linalg.inv(np.diag(kron_sum_diag(u, v))), p=p)
-    T_ = T_psi * K(n, 2*p-1, p)
-    trpW = U @ trpD @ U.T
-    T_ -= np.diag(np.diag(T_))
-    trpW -= np.diag(np.diag(trpW))
-    assert np.isclose(
-        trpW,
-        -T_,
-        atol=1e-3
-    ).all(), (trpW + T_)
-    """
     
     return Psi, Theta
+    
+
+def scBiGLasso(
+    N: "Maximum iteration number",
+    eps: "Tolerance",
+    Ys: "m by p by n tensor, m slices of observed p by n matrix Y_k",
+    beta_1: "Psi's L1 penalty",
+    beta_2: "Theta's L1 penalty",
+    Psi_init: "n by n initial estimate for Psi" = None,
+    Theta_init: "p by p initial estimate for Theta" = None,
+    verbose: bool = False
+) -> ("Psi", "Theta"):
+
+    T_psi, T_theta = calculate_empirical_covariance_matrices(Ys)
+    return scBiGLasso_cov(
+        N, eps, T_psi, T_theta,
+        beta_1, beta_2,
+        Psi_init, Theta_init,
+        verbose
+    )
+    
+    
 
 def calculate_empirical_covariance_matrices(
     Ys: "(m, n, p)"
