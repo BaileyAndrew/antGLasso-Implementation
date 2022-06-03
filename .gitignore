@@ -1,4 +1,10 @@
 
 *.pyc
 Plots/Old Figs/Vary-Samples-Experiment/Precision-Recall-Vary-Samples-500.png
-Data/**/**
+Data/**/**.png
+Data/**/**.csv
+Data/**/**.tsv
+Data/**/**.h5
+Data/**/**.txt
+Data/**/**.mtx
+Data/**/**.gz
