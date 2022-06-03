@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.optimize import lsq_linear
 from Scripts.utilities import K, LASSO
 from Scripts.nonparanormal import nonparanormal
 from Scripts.anBiGLasso import shrink
@@ -121,6 +122,7 @@ def calculateEigenvalues(
                 B_[row, n+j] = 1
                 a_[row] = a[true_row]
             Ls += np.linalg.lstsq(B_, a_, rcond=None)[0]
+            #Ls += lsq_linear(B_, a_, bounds=(0, np.inf))['x']
         Ls /= B_approx_iters
     
     return Ls[:n], Ls[n:]
@@ -156,4 +158,4 @@ def eigenvalues_MLE(
     _, v = calculateEigenvalues(Sigmas, B_approx_iters)
     
     
-    return u, v
+    return np.abs(u), np.abs(v)

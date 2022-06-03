@@ -17,7 +17,7 @@ eng.addpath(
     + 'Implementation/EiGLasso/EiGLasso_JMLR'
 )
 
-def EiGLasso(Ys, beta_1=0.01, beta_2=0.01):
+def EiGLasso(Ys, beta_1=0.01, beta_2=0.01, Psi_init=None, Theta_init=None):
     (m, n, p) = Ys.shape
     T = np.einsum("mnp, mlp -> nl", Ys, Ys) / (m*p)
     S = np.einsum("mnp, mnl -> pl", Ys, Ys) / (m*n)
@@ -25,14 +25,28 @@ def EiGLasso(Ys, beta_1=0.01, beta_2=0.01):
     S_matlab = matlab.double(S)
     beta_1_matlab = matlab.double(beta_1)
     beta_2_matlab = matlab.double(beta_2)
-    Theta, Psi, ts, fs = eng.eiglasso_joint(
-        S_matlab,
-        T_matlab,
-        beta_1_matlab,
-        beta_2_matlab,
-        nargout=4,
-        stdout=io.StringIO()
-    )
+    if Psi_init is not None:
+        Psi_init_matlab = matlab.double(Psi_init)
+        Theta_init_matlab = matlab.double(Theta_init)
+        Theta, Psi, ts, fs = eng.eiglasso_joint(
+            S_matlab,
+            T_matlab,
+            beta_1_matlab,
+            beta_2_matlab,
+            Psi_init_matlab,
+            Theta_init_matlab,
+            nargout=4,
+            stdout=io.StringIO()
+        )
+    else:
+        Theta, Psi, ts, fs = eng.eiglasso_joint(
+            S_matlab,
+            T_matlab,
+            beta_1_matlab,
+            beta_2_matlab,
+            nargout=4,
+            stdout=io.StringIO()
+        )
     Theta = np.asarray(Theta)
     Psi = np.asarray(Psi)
     
@@ -42,19 +56,39 @@ def EiGLasso(Ys, beta_1=0.01, beta_2=0.01):
     
     return Psi, Theta
 
-def EiGLasso_cov(T, S, beta_1=0.01, beta_2=0.01):
+def EiGLasso_cov(T, S, beta_1=0.01, beta_2=0.01, Psi_init=None, Theta_init=None):
     T_matlab = matlab.double(T)
     S_matlab = matlab.double(S)
     beta_1_matlab = matlab.double(beta_1)
     beta_2_matlab = matlab.double(beta_2)
-    Theta, Psi, ts, fs = eng.eiglasso_joint(
-        S_matlab,
-        T_matlab,
-        beta_1_matlab,
-        beta_2_matlab,
-        nargout=4,
-        stdout=io.StringIO()
-    )
+    if Psi_init is not None:
+        Psi_init_matlab = matlab.double(Psi_init)
+        Theta_init_matlab = matlab.double(Theta_init)
+        Theta, Psi, ts, fs = eng.eiglasso_joint(
+            S_matlab,
+            T_matlab,
+            beta_1_matlab,
+            beta_2_matlab,
+            Psi_init_matlab,
+            Theta_init_matlab,
+            1, # K
+            10000, # maxNewton
+            20, # max_line
+            0.001, # tol
+            0.01, # sigma
+            0, # tr_ratio
+            nargout=4,
+            stdout=io.StringIO()
+        )
+    else:
+        Theta, Psi, ts, fs = eng.eiglasso_joint(
+            S_matlab,
+            T_matlab,
+            beta_1_matlab,
+            beta_2_matlab,
+            nargout=4,
+            stdout=io.StringIO()
+        )
     Theta = np.asarray(Theta)
     Psi = np.asarray(Psi)
     
