@@ -150,13 +150,18 @@ def calculateEigenvalues(
 
         Ls = np.linalg.lstsq(B, a, rcond=None)[0]
     else:
-        # Less accurate, 
+        # Less accurate, but faster
+        # Note: we _could_ go ahead and calculate the inverse
+        # of B right here (maybe we'd run into numerical stability
+        # issues, I haven't tried it).
+        # However, this is already sufficiently optimized such that
+        # the grand majority (~90%) of the runtime is in the calls to
+        # LASSO at the end!
         Ls = np.zeros((n+p,))
-        B = np.eye(n + p - 1, n + p)
+        B = np.eye(n + p, n + p)
         B[n:, -2] = 1
         B[:n, -1] = 1
-        B[-1, -1] = 1
-        B_pinv = np.linalg.pinv(B)
+        B[-2, -1] = 1
         for it in range(B_approx_iters):
             a_ = np.empty((n+p-1,))
             rows_seen = set({})
@@ -177,16 +182,14 @@ def calculateEigenvalues(
                 a_[row - offset] = a[true_row]
                 
             a_[it:] = np.roll(a_[it:], -1)
-            out = B_pinv @ a_
             
-            # TEST
-            B_ = np.zeros((n + p, n + p))
-            B_[:n+p-1, :] = B
-            B_[-1, -1] = 1
+            # Add previous estimate for eigenvalue corresponding
+            # to the last column to the end of a_, so that
+            # we can solve an invertible square matrix!
             a_2 = np.empty((n + p,))
             a_2[:n+p-1] = a_
             a_2[-1] = (Ls[it+n-1] / it) if it > 0 else 1
-            out = solve_triangular(B_, a_2)
+            out = solve_triangular(B, a_2)
             
             # Move last two cols back to i, j positions
             out[it+n-1:] = np.roll(out[it+n-1:], 1)
