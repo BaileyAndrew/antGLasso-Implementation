@@ -6,7 +6,9 @@ precision matrices of matrix data (within-row and within-column precisions).
 There are two variants of the algorithm - one with optimal space complexity
 (whose performance is dependent on a hyperparameter `b` controlling the goodness
 of the approximation, here we set `b=10`) and one with poor space complexity
-but better performance.  The latter one is called 'Hungry anBiGLasso'.
+but slightly better performance.  The latter one is called 'Hungry anBiGLasso'.
+For brevity, this ReadMe won't cover Hungry anBiGLasso, but the repo does contain
+precision-recall plots in the `Plots` folder.
 
 ## Other BiGraphical Lasso Algorithms
 
@@ -19,26 +21,14 @@ following the instructions of the authors of EiGLasso.  This could add some over
 but since the other algorithms are implemented in Python (a language not known for speed)
 we are hopeful that this does not substantially affect the analysis.
 
-We use the out-of-the-box hyperparameters of EiGLasso.  It could be possible to
-perform better with more precisely tuned parameters.  However, one of the advantages
-of anBiGLasso is its lack of hyperparameters, except for `b` which has a straightforward
-interpretion (large `b` means more accurate but longer runtime).
+We use the out-of-the-box hyperparameters of EiGLasso.
 
 ## Practical Performance
 
-All comparisons are done using a large number of samples.  For a small number of samples,
-results may be different.
-
 ### Summary
 
-anBiGLasso and EiGLasso are roughly the same speed.  EiGLasso is slightly faster unless
-it is on 'hard' data, in which case anBiGLasso is slightly faster.  These differences
-are likely due to the precise implementation of the algorithms.
-anBiGLasso is faster than scBiGLasso, especially on 'hard' data (on which scBiGLasso takes far too long)
-
-'Hungry' anBiGLasso does the best, but has nonoptimal asymptotic complexity.  We can
-tweak it to have optimal complexity at the cost of runtime (negligible) and performance
-(noticeable but not by much, slightly worse than scBiGLasso).
+anBiGLasso is the fastest - this is especially apparent when working with a small
+sample size.  EiGLasso is the most accurate - especially for a small sample size.
 
 ### Runtimes
 
@@ -50,35 +40,48 @@ of freedom being twice the size of the matrix.  If you draw from the same distri
 but with half the degrees of freedom, you will get slow-converging, poor-performing
 results.  We look at both of these cases.
 
-#### 'Easy' Data (Quick Convergence)
+#### Large Sample (m=100) 'Easy' Data (Quick Convergence)
 
-![EasyData](Plots/Runtimes%20Comparison/Compare%20Runtimes%20Easy%20Data.png)
+![EasyData](Plots/Runtimes%20Comparison/Compare%20Runtimes%20Easy%20Data%20Large%20Sample.png)
 
-#### 'Hard' Data (Slow Convergence)
+#### Large Sample (m=100) 'Hard' Data (Slow Convergence)
 
-![HardData](Plots/Runtimes%20Comparison/Compare%20Runtimes%20Hard%20Data.png)
+![HardData](Plots/Runtimes%20Comparison/Compare%20Runtimes%20Hard%20Data%20Large%20Sample.png)
 
 It can be hard to compare anBiGLasso and EiGLasso in this plot, as they are
 both very quick.
 
 ![HardData2](Plots/Runtimes%20Comparison/Compare%20Runtimes%20Hard%20Data%20No%20scBiGLasso.png)
 
-### Results
+#### Large Sample (m=1) 'Easy' Data (Quick Convergence)
 
-_(TODO: Look at performance on real data)_
+![EasyData](Plots/Runtimes%20Comparison/Compare%20Runtimes%20Easy%20Data%20Small%20Sample.png)
+
+#### Large Sample (m=1) 'Hard' Data (Slow Convergence)
+
+![HardData](Plots/Runtimes%20Comparison/Compare%20Runtimes%20Hard%20Data%20Small%20Sample.png)
+
+#### Long-Term Small Sample Runtimes
+
+![MidTermRuntimes](Plots/Runtimes%20Comparison/Compare%20Runtimes%20Hard%20Data%20Small%20Sample%20No%20sc.png)
+
+![LongTermRuntimes](Plots/Runtimes%20Comparison/Compare%20Runtimes%20Small%20Sample%20Just%20anBiGLasso.png)
+
+We can see that anBiGLasso can deal with matrices ~5x larger (25x more elements) than EiGLasso in
+the same timeframe.  (EiGLasso can do 300x300 in ~40 seconds, anBiGLasso can do 1600x1600 in ~40 seconds)
+
+### Results on Simulated Data (Large Sample)
 
 You get roughly the same precision-recall curves regardless of the size of the input
 data (but the best L1 penalties will be different) for anBiGLasso.  We can see that anBiGLasso gets
-roughly the same results as scBiGLasso - the hungry algorithm does slightly better,
-whereas the well-nourished (?) algorithm does slightly worse.  EiGLasso does interestingly.
+roughly the same results as scBiGLasso, but EiGLasso is superior.
+
+We just show the performance on 'easy' data, as the 'hard' data results had much more variance.  However,
+the `Plots` folder does contain analagous hard-data plots. 
 
 #### anBiGLasso Results
 
 ![anBiGLasso Results](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Vary%20Sizes%20-%20anBiGLasso%20-%20Easy%20-%20Approx/Precision-Recall-Vary-Sizes-100.png)
-
-##### Hungry anBiGLasso
-
-![hungry anBiGLasso Results](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Vary%20Sizes%20-%20anBiGLasso%20-%20Easy/Precision-Recall-Vary-Sizes-100.png)
 
 #### scBiGLasso Results
 
@@ -88,30 +91,64 @@ whereas the well-nourished (?) algorithm does slightly worse.  EiGLasso does int
 
 ![EiGLasso Results](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Vary%20Sizes%20-%20EiGLasso%20-%20Easy/Precision-Recall-Vary-Sizes-100.png)
 
-However, these results are just for the aforementioned 'easy' data.  For hard data, the
-results are worse:
+### Results on Simulated Data (Small Sample)
 
-#### Hard anBiGLasso Results
+Here we just compare anBiGLasso and EiGLasso as scBiGLasso takes a long time to run on small samples.
 
-![scBiGLasso Results](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Vary%20Sizes%20-%20anBiGLasso%20-%20Hard%20-%20Approx/Precision-Recall-Vary-Sizes-40.png)
+#### anBiGLasso Results
 
+![anBiGLasso Results](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Vary%20Samples%20-%20anBiGLasso%20-%20Easy%20-%20Approx/Precision-Recall-Vary-Samples-5.png)
 
-##### Hungry Hard anBiGLasso Results
+![anBiGLasso Results](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Vary%20Samples%20-%20anBiGLasso%20-%20Easy%20-%20Approx/Precision-Recall-Vary-Samples-10.png)
 
-![anBiGLasso Results](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Vary%20Sizes%20-%20anBiGLasso%20-%20Hard/Precision-Recall-Vary-Sizes-40.png)
+As we can see, anBiGLasso does terribly for small samples.  It needs about 10 samples before it starts being comparable to EiGLasso again.
+Of course, EiGLasso also does terribly, but not nearly as terribly.  This is the greatest flaw of anBiGLasso - its weakness on small samples.
 
-#### Hard scBiGLasso Results
+We will see that despite this apparent flaw, on real data it can still produce useful results on small samples (m=1)
 
-_(It takes 5 hours to generate this graph!  B/c it's slow on hard data)_
+#### EiGLasso Results
 
-![scBiGLasso Results](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Vary%20Sizes%20-%20scBiGLasso%20-%20Hard/Precision-Recall-Vary-Sizes-40.png)
+![EiGLasso Results](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Vary%20Samples%20-%20EiGLasso%20-%20Easy/Precision-Recall-Vary-Samples-5.png)
 
-We can see that the scBiGLasso results on 'hard' data are nonsense - this is because the algorithm
-did not converge within 100 iterations, so we cut it off.
+![anBiGLasso Results](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Vary%20Samples%20-%20EiGLasso%20-%20Easy/Precision-Recall-Vary-Samples-10.png)
 
-#### Hard EiGLasso Results
+## Performance on Real Data
 
-![EiGLasso Results](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Vary%20Sizes%20-%20EiGLasso%20-%20Hard/Precision-Recall-Vary-Sizes-40.png)
+We investigate performance on two datasets - the 'Duck Dataset', using the same experiment as described in the original BiGLasso paper,
+and the 'Mouse Dataset', using the same experiment as described in the scBiGLasso paper.
+
+### COIL Dataset
+
+We would expect each frame to be conditionally dependent on nearby frames, manifesting in a precision matrix that hugs the diagonal.
+We might also expect the upper right and lower left corners to be nonzero, as the video is of a duck rotating around 360°.
+
+The results align well with our expectations.
+
+#### anBiGLasso
+
+![Duck](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Duck/anBiGLasso%20Performance.png)
+
+### Mouse Dataset
+
+This dataset has three cell types: S, G1, and G2M.  We would expect that the precision matrix has blocks around the diagonal
+indicating each of these cell types.
+
+#### anBiGLasso
+
+![Mouse anBiGLasso](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Mouse/anBiGLasso%20Performance.png)
+
+It is clear that anBiGLasso has learned some information about the problem, although it has been unable to recognize the G1 cluster
+and it has merged the S and G2M clusters.
+
+#### EiGLasso
+
+![Mouse EiGLasso](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Mouse/EiGLasso%20Performance.png)
+
+This seems to be do better than EiGLasso - it successfully identifies all three clusters, although there seem to be strong connections
+between the S cluster and the others (I do not know if this is biologically plausible or not).
+
+If we increase regularization, then the G1 cluster disappears, so we should not be too hard on anBiGLasso for not learning it - it seems
+that this cluster is easy to destroy.
 
 ## Asymptotic Performance
 
@@ -119,9 +156,8 @@ The hungry implementation of anBiGLasso has the unideal space complexity $O(mnp 
 but the non-hungry version has a space complexity of $O(mnp + n^2 + p^2)$
 (the size of the inputs plus the outputs).
 
-Time complexity is $O(mn^2p + mnp^2 + b(n^3 + p^3 + n^2p + p^2n))$.  In practice $b$ is constant,
-it does not seem to need to be increased for larger data.  (However, it could be that the best
-value grows with the log of the data, I haven't investigated...)
+Time complexity is $O(mn^2p + mnp^2 + b(n^3 + p^3 + n^2p + p^2n))$.  In practice $b$ is constant (`b=10`),
+it does not need to be increased for larger data.  This gives the complexity $O(mn^2p + mnp^2 + n^3 + p^3)$
 
 ## Data
 
@@ -134,4 +170,6 @@ the diagonals to 1).
 
 The Nonparanormal Skeptic layer is not currently implemented, in fact it is nontrivial to implement
 as our algorithm needs the raw data to work - it cannot be framed as a function of covariance matrices.
+
+For real data, the relevant notebooks in this repo contain download links.
 
