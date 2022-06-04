@@ -55,11 +55,11 @@ both very quick.
 
 ![HardData2](Plots/Runtimes%20Comparison/Compare%20Runtimes%20Hard%20Data%20No%20scBiGLasso.png)
 
-#### Large Sample (m=1) 'Easy' Data (Quick Convergence)
+#### Small Sample (m=1) 'Easy' Data (Quick Convergence)
 
 ![EasyData](Plots/Runtimes%20Comparison/Compare%20Runtimes%20Easy%20Data%20Small%20Sample.png)
 
-#### Large Sample (m=1) 'Hard' Data (Slow Convergence)
+#### Small Sample (m=1) 'Hard' Data (Slow Convergence)
 
 ![HardData](Plots/Runtimes%20Comparison/Compare%20Runtimes%20Hard%20Data%20Small%20Sample.png)
 
