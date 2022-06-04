@@ -158,7 +158,8 @@ that this cluster is easy to destroy.
 
 The hungry implementation of anBiGLasso has the unideal space complexity $O(mnp + n^2p + p^2n)$,
 but the non-hungry version has a space complexity of $O(mnp + n^2 + p^2)$
-(the size of the inputs plus the outputs).
+(the size of the inputs plus the outputs).  If we consider this as a function of the empirical covariance
+matrices rather than a matrix-variate dataset, space complexity is $O(n^2 + p^2)$.
 
 Time complexity is $O(mn^2p + mnp^2 + b(n^3 + p^3 + n^2p + p^2n))$.  In practice $b$ is constant (`b=10`),
 it does not need to be increased for larger data.  This gives the complexity $O(mn^2p + mnp^2 + n^3 + p^3)$
