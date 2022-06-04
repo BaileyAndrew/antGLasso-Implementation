@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.linalg import solve_triangular
 from Scripts.utilities import K, LASSO
 from Scripts.nonparanormal import nonparanormal
 
@@ -162,7 +163,7 @@ def calculateEigenvalues(
             offset = 0
             for row in range(n + p):
                 # First, figure out what row
-                # we want from the full B
+                # we want from the full a
                 if row < n:
                     # Get all terms involving ith eigenvector of Psi
                     true_row = it*n + row
@@ -177,6 +178,16 @@ def calculateEigenvalues(
                 
             a_[it:] = np.roll(a_[it:], -1)
             out = B_pinv @ a_
+            
+            # TEST
+            B_ = np.zeros((n + p, n + p))
+            B_[:n+p-1, :] = B
+            B_[-1, -1] = 1
+            a_2 = np.empty((n + p,))
+            a_2[:n+p-1] = a_
+            a_2[-1] = (Ls[it+n-1] / it) if it > 0 else 1
+            out = solve_triangular(B_, a_2)
+            
             # Move last two cols back to i, j positions
             out[it+n-1:] = np.roll(out[it+n-1:], 1)
             out[it:] = np.roll(out[it:], 1)
