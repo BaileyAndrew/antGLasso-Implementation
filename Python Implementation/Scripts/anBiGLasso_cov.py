@@ -2,7 +2,7 @@ import numpy as np
 from scipy.optimize import lsq_linear
 from Scripts.utilities import K, LASSO
 from Scripts.nonparanormal import nonparanormal
-from Scripts.anBiGLasso import shrink
+from Scripts.anBiGLasso import shrink, eigenvectors_MLE, calculateEigenvalues
 
 def anBiGLasso(
     T: "(n, n) within-row covariance matrix",
@@ -37,24 +37,6 @@ def anBiGLasso(
     
     return Psi, Theta
 
-def eigenvectors_MLE(
-    T: "Within-row empirical covariance matrix",
-    S: "Within-column empirical covariance matrix"
-) -> "Tuple of the MLE estimates of eigenvectors of Psi/Theta":
-    """
-    An implementation of Theorem 1
-    """
-    n = T.shape[0]
-    p = S.shape[0]
-    
-    _T = T * K(n, 2*p-1, p)
-    _S = S * K(p, 2*n-1, n)
-    
-    u, U = np.linalg.eigh(_T)
-    v, V = np.linalg.eigh(_S)
-    
-    return U, V
-
 def calculateSigmas(
     Xs: "(m, n, p) tensor, m samples of (n, p) matrix"
 ) -> "(n, p) tensor: n slices of diagonals of (n, p, p) covariance matrix":
@@ -66,66 +48,6 @@ def calculateSigmas(
     
     (m, n, p) = Xs.shape
     return (Xs**2).sum(axis=0) / m
-
-def calculateEigenvalues(
-    Sigmas: "(n, p) tensor",
-    B_approx_iters: int
-):
-    """
-    Solves system of linear equations for the eigenvalues
-    `B_approx_iters` is how many times to run the least
-    squares computation on partial data.  If it is -1,
-    then we run the computation on the whole data.  This
-    is the most accurate, but increases space complexity
-    from a quadratic to a cubic polynomial.
-    
-    An implementation of Lemma 3
-    """
-    
-    (n, p) = Sigmas.shape
-    invSigs = 1 / Sigmas
-    
-    a = invSigs.T.reshape((n*p,))
-    if B_approx_iters == -1:
-        # Most accurate, but increases space complexity
-        # from n^2 + p^2 to pn^2 + np^2 !!
-        B = np.empty((
-            n * p, n + p 
-        ))
-        for row in range(n*p):
-            i = row % n
-            j = row // n
-            B[row, :] = 0
-            B[row, i] = 1
-            B[row, n+j] = 1
-
-        Ls = np.linalg.lstsq(B, a, rcond=None)[0]
-    else:
-        # Less accurate, 
-        Ls = np.zeros((n+p,))
-        for it in range(B_approx_iters):
-            a_ = np.empty((n+p,))
-            B_ = np.zeros((n+p, n+p))
-            for row in range(n + p):
-                # First, figure out what row
-                # we want from the full B
-                if row < n:
-                    # Get all terms involving ith eigenvector of Psi
-                    true_row = it*n + row
-                else:
-                    # Get all terms involving ith eigenvector of Theta
-                    true_row = it + (row-n)*n
-                i = true_row % n
-                j = true_row // n
-                B_[row, :] = 0
-                B_[row, i] = 1
-                B_[row, n+j] = 1
-                a_[row] = a[true_row]
-            Ls += np.linalg.lstsq(B_, a_, rcond=None)[0]
-            #Ls += lsq_linear(B_, a_, bounds=(0, np.inf))['x']
-        Ls /= B_approx_iters
-    
-    return Ls[:n], Ls[n:]
 
 def eigenvalues_MLE(
     T: "(n, n) empirical covariance",
