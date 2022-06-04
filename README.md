@@ -20,15 +20,17 @@ compare against EiGLasso (which is implemented in C++), we interface through Mat
 following the instructions of the authors of EiGLasso.  This could add some overhead,
 but since the other algorithms are implemented in Python (a language not known for speed)
 we are hopeful that this does not substantially affect the analysis.
-
 We use the out-of-the-box hyperparameters of EiGLasso.
 
 ## Practical Performance
 
 ### Summary
 
-anBiGLasso is the fastest - this is especially apparent when working with a small
-sample size.  EiGLasso is the most accurate - especially for a small sample size.
+Based on the results of my experiments, I would recommend EiGLasso when speed is not an issue,
+and anBiGLasso if speed becomes an issue.  anBiGLasso can handle a 1600x1600 dataset in
+less than a minute, whereas EiGLasso can only handle a 300x300 dataset in the same timeframe.
+However, EiGLasso, especially on small samples, is more accurate than anBiGLasso.  The difference
+in accuracy is not so much on large samples.
 
 ### Runtimes
 
@@ -111,6 +113,8 @@ We will see that despite this apparent flaw, on real data it can still produce u
 ![EiGLasso Results](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Vary%20Samples%20-%20EiGLasso%20-%20Easy/Precision-Recall-Vary-Samples-5.png)
 
 ![anBiGLasso Results](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Vary%20Samples%20-%20EiGLasso%20-%20Easy/Precision-Recall-Vary-Samples-10.png)
+
+EiGLasso is overall an excellent algorithm, and perhaps its greatest strength in comparison to anBiGLasso is its small-sample performance.
 
 ## Performance on Real Data
 
