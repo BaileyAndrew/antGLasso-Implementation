@@ -175,8 +175,5 @@ by Hadamard-producting them with some positive definite masking matrix represent
 outer product of an i.i.d. vector of bernoulli variables with itself (and then manually setting
 the diagonals to 1).
 
-The Nonparanormal Skeptic layer is not currently implemented, in fact it is nontrivial to implement
-as our algorithm needs the raw data to work - it cannot be framed as a function of covariance matrices.
-
 For real data, the relevant notebooks in this repo contain download links.
 
