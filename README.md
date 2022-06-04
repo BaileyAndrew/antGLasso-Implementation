@@ -34,6 +34,10 @@ in accuracy is not so much on large samples.
 
 ### Runtimes
 
+90% of the runtime of anBiGLasso is taken up by the call to LASSO.  I could probably do
+further improvements of the remaining 10%, but there is not much point at the moment unless
+I can get a faster LASSO implementation (current one is `scikit-learn`'s).
+
 scBiGLasso and EiGLasso are iterative algorithms, which means their speed can
 vary substantially depending on how fast they converge.  Empirically I've noticed
 that you will get quick convergence (and good precision/recall) if your
