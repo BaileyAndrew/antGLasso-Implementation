@@ -34,6 +34,11 @@ in accuracy is not so much on large samples.
 
 ### Runtimes
 
+**Warning: Runtime info is a bit outdated, I improved my algorithm so that it used
+to take 40 seconds to run on 1600 by 1600 matrices, now it can do 4500 by 4500 in 40
+seconds.  Some figures here are pre-speedup, some are post-speedup.  I'm not updating
+them all yet b/c I'm still optimizing further.**
+
 scBiGLasso and EiGLasso are iterative algorithms, which means their speed can
 vary substantially depending on how fast they converge.  Empirically I've noticed
 that you will get quick convergence (and good precision/recall) if your

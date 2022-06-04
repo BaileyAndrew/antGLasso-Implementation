@@ -52,7 +52,7 @@ def calculate_empirical_covariances(
 def shrink(
     Psi: "Matrix to shrink",
     b: "L1 penalty",
-    mode: ("Row by Row", "Upper Triangle") = "Row by Row"
+    mode: ("Row by Row", "Upper Triangle") = "Row by Row (direct)"
 ) -> "L1-shrunk Psi":
     
     if mode == "Row by Row":
@@ -60,6 +60,20 @@ def shrink(
         for r in range(n):
             row = np.delete(Psi[r, :], r, axis=0)
             row = LASSO(np.eye(n-1), row, b)
+            Psi[r, :r] = row[:r]
+            Psi[r, r+1:] = row[r:]
+            Psi[:, r] = Psi[r, :]
+    elif mode == "Row by Row (direct)":
+        # Here we take advantage of the fact that our Lasso matrix is the
+        # identity, and so we temporarily make our row have only positive
+        # values so that the minima can be computed in closed form
+        n = Psi.shape[0]
+        for r in range(n):
+            row = np.delete(Psi[r, :], r, axis=0)
+            #row = np.sign(row) * LASSO(np.eye(n-1), np.abs(row), b)
+            row_ = (np.abs(row) - b / 2)
+            row_[row_ < 0] = 0
+            row = np.sign(row) * row_
             Psi[r, :r] = row[:r]
             Psi[r, r+1:] = row[r:]
             Psi[:, r] = Psi[r, :]
