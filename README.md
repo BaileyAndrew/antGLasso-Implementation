@@ -162,7 +162,9 @@ but the non-hungry version has a space complexity of $O(mnp + n^2 + p^2)$
 matrices rather than a matrix-variate dataset, space complexity is $O(n^2 + p^2)$.
 
 Time complexity is $O(mn^2p + mnp^2 + b(n^3 + p^3 + n^2p + p^2n))$.  In practice $b$ is constant (`b=10`),
-it does not need to be increased for larger data.  This gives the complexity $O(mn^2p + mnp^2 + n^3 + p^3)$
+it does not need to be increased for larger data.  This gives the complexity $O(mn^2p + mnp^2 + n^3 + p^3)$.
+The $mn^2p + mnp^2$ term comes form the computation of the empirical covariance matrices - if we consider
+them to be the input of the algorithm, then the time complexity is $O(n^3 + p^3 + n^2p + np^2)$.
 
 ## Data
 
