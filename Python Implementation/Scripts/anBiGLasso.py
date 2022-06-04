@@ -151,9 +151,13 @@ def calculateEigenvalues(
     else:
         # Less accurate, 
         Ls = np.zeros((n+p,))
+        B = np.eye(n + p - 1, n + p)
+        B[n:, -2] = 1
+        B[:n, -1] = 1
+        B[-1, -1] = 1
+        B_pinv = np.linalg.pinv(B)
         for it in range(B_approx_iters):
             a_ = np.empty((n+p-1,))
-            B_ = np.zeros((n+p-1, n+p))
             rows_seen = set({})
             offset = 0
             for row in range(n + p):
@@ -169,32 +173,10 @@ def calculateEigenvalues(
                     offset += 1
                     continue
                 rows_seen.add(true_row)
-                i = true_row % n
-                j = true_row // n
-                B_[row - offset, :] = 0
-                B_[row - offset, i] = 1
-                B_[row - offset, n+j] = 1
                 a_[row - offset] = a[true_row]
                 
-            # Move (n)th row to end
-            #B_[n:, :] = np.roll(B_[n:, :], -1, axis=0)
-            # Move ith, jth col to end
-            B_[:, it:] = np.roll(B_[:, it:], -1, axis=1)
-            B_[:, it+n-1:] = np.roll(B_[:, it+n-1:], -1, axis=1)
-            B_[it:, :] = np.roll(B_[it:, :], -1, axis=0)
-            #if i < j:
-            #    B_[:, j+1:] = np.roll(B_[:, j+1:], -1, axis=1)
-            #else:
-            #    B_[:, j:] = np.roll(B_[:, j:], -1, axis=1)
-            
-            # Ignore what came before
-            B_ = np.eye(n + p - 1, n + p)
-            B_[n:, -2] = 1
-            B_[:n, -1] = 1
-            B_[-1, -1] = 1
             a_[it:] = np.roll(a_[it:], -1)
-                
-            out = np.linalg.lstsq(B_, a_, rcond=None)[0]
+            out = B_pinv @ a_
             # Move last two cols back to i, j positions
             out[it+n-1:] = np.roll(out[it+n-1:], 1)
             out[it:] = np.roll(out[it:], 1)
