@@ -165,19 +165,23 @@ def calculateEigenvalues(
 
         Ls = np.linalg.lstsq(B, a, rcond=None)[0]
     else:
-        # Less accurate, but faster
-        # Note: we _could_ go ahead and calculate the inverse
-        # of B right here (maybe we'd run into numerical stability
-        # issues, I haven't tried it).
-        # However, this is already sufficiently optimized such that
-        # the grand majority (~90%) of the runtime is in the calls to
-        # LASSO at the end!
+        # Slightly less accurate, but much faster and more memory efficient
         Ls = np.zeros((n+p,))
-        B = np.eye(n + p, n + p)
-        B[n:-1, -2] = 1
-        B[:n, -1] = 1
-        B[-2, -1] = 1
+        #B = np.eye(n + p, n + p)
+        #B[n:-1, -2] = 1
+        #B[:n, -1] = 1
+        #B[-2, -1] = 1
+        B_inv = np.eye(n + p, n + p)
+        B_inv[n:-2, -2] = -1
+        B_inv[:n, -1] = -1
+        B_inv[n:-2, -1] = 1
+        B_inv[-2, -1] = -1
         for it in range(B_approx_iters):
+            # Select the ith eigenvector of Psi,
+            # and the jth eigenvector of Theta
+            j = np.random.randint(0, n)
+            i = np.random.randint(0, p)
+            
             a_ = np.empty((n+p-1,))
             rows_seen = set({})
             offset = 0
@@ -186,29 +190,30 @@ def calculateEigenvalues(
                 # we want from the full a
                 if row < n:
                     # Get all terms involving ith eigenvector of Psi
-                    true_row = it*n + row
+                    true_row = i*n + row
                 else:
-                    # Get all terms involving ith eigenvector of Theta
-                    true_row = it + (row-n)*n
+                    # Get all terms involving jth eigenvector of Theta
+                    true_row = j + (row-n)*n
                 if true_row in rows_seen:
                     offset += 1
                     continue
                 rows_seen.add(true_row)
                 a_[row - offset] = a[true_row]
                 
-            a_[it:] = np.roll(a_[it:], -1)
+            a_[j:] = np.roll(a_[j:], -1)
             
             # Add previous estimate for eigenvalue corresponding
             # to the last column to the end of a_, so that
             # we can solve an invertible square matrix!
             a_2 = np.empty((n + p,))
             a_2[:n+p-1] = a_
-            a_2[-1] = (Ls[it+n-1] / it) if it > 0 else 1
-            out = solve_triangular(B, a_2)
+            a_2[-1] = (Ls[i+n-1] / it) if it > 0 else 1
+            #out = solve_triangular(B, a_2)
+            out = B_inv @ a_2
             
             # Move last two cols back to i, j positions
-            out[it+n-1:] = np.roll(out[it+n-1:], 1)
-            out[it:] = np.roll(out[it:], 1)
+            out[i+n-1:] = np.roll(out[i+n-1:], 1)
+            out[j:] = np.roll(out[j:], 1)
             Ls += out
         Ls /= B_approx_iters
     
