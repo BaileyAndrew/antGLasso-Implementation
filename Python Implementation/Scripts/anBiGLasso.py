@@ -182,6 +182,7 @@ def calculateEigenvalues(
             j = np.random.randint(0, n)
             i = np.random.randint(0, p)
             
+            """
             a_ = np.empty((n+p-1,))
             rows_seen = set({})
             offset = 0
@@ -199,6 +200,16 @@ def calculateEigenvalues(
                     continue
                 rows_seen.add(true_row)
                 a_[row - offset] = a[true_row]
+            """
+                
+            # ignore what came before
+            # We can work out that the duplicate row occurs
+            # when, for integer x, j+x*n is in [i*n, i*n+n)
+            # We can use this to work out the index to delete
+            a_ = np.concatenate([
+                a[i*n:i*n+n],
+                np.delete(a[j::n], ((i*n + n - j - 1) // n))
+            ])
                 
             a_[j:] = np.roll(a_[j:], -1)
             
