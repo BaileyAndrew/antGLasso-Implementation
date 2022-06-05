@@ -178,6 +178,18 @@ indicating each of these cell types.
 anBiGLasso may have learned some information about this problem, but not much - it seems to put S and G2M cells together, and does
 not recognize the G1 cluster.  This is unfortunate but not unexpected given the performance of the algorithm on small sample data.
 
+To try to get around the small sample issue, we can try augmenting our data.  To do this, we calculate the library sizes of the data
+(the total amount of counts per cell), and then generate copies of the data with a random portion of the library size added to each
+gene per cell.  We created 50 copies like this.  The hope is that this teaches the model something about the underlying true count
+distribution - thus, even if the augmented data comes from a single sample, it can act as a slightly larger sample size.
+
+![Mouse anBiGLasso](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Mouse/anBiGLasso%20Performance%20Augmented.png)
+
+This looks a lot better!  It still doesn't learn the G1 cluster, and S and G2M are still together, but the cluster it does find is
+much clearer.  The small sample limitation of this algorithm can be at least partially overcome by data augmentation.  Our method
+of augmentation was rather simple, but perhaps other methods might be able to teach the model more about the underlying structure
+of the data.
+
 #### EiGLasso
 
 ![Mouse EiGLasso](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Mouse/EiGLasso%20Performance.png)
