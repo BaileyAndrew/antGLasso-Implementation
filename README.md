@@ -162,6 +162,9 @@ We might also expect the upper right and lower left corners to be nonzero, as th
 
 The results align well with our expectations.
 
+Note: in the original BiGraphical Lasso paper, they shrunk the 128x128 pixel frames to 9x9.  We shrink them to 32x32 for this demonstration,
+although 64x64 should not be out of reach.
+
 #### anBiGLasso
 
 ![Duck](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Duck/anBiGLasso%20Performance.png)
