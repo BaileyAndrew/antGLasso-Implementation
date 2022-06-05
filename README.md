@@ -168,7 +168,11 @@ The results align well with our expectations.
 
 Note: in the original BiGraphical Lasso paper, they shrunk the 128x128 pixel frames to 9x9.  We use 64x64, which takes about 20
 seconds (as our input data is of size (70, 4096)).  Smaller cases, such as 32x32, take neglibigle runtime.  We wanted to consider
-the full 128x128 case, but the memory of the precision matrix would be prohibitive (17 gigabytes!) on my machine.  Given a machine
+the full 128x128 case, but the memory requirements would be prohibitive on my machine (it would require 2 gigabytes of input,
+2 gigabytes of output, and then some intermediate matrices also of size 2 gigabytes each that could possibly be optimized away with
+some effort).
+
+Given a machine
 with sufficient memory, extrapolating the cubic time complexity implies it would take $20 \times 4^3$ seconds, or 21 minutes to run.
 This is a very reasonable runtime, indicating that the limits of this algorithm are bounded by memory not speed.  Since the space
 complexity of anBiGLasso is optimal, this is a fundamental limit of the BiGraphical Lasso problem itself rather than our algorithm.
