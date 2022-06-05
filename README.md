@@ -59,11 +59,6 @@ in accuracy is not so much on large samples.
 
 ### Runtimes
 
-**Warning: Runtime info is a bit outdated, I improved my algorithm so that it used
-to take 40 seconds to run on 1600 by 1600 matrices, now it can do 4500 by 4500 in 40
-seconds.  Some figures here are pre-speedup, some are post-speedup.  I'm not updating
-them all yet b/c I'm still optimizing further.**
-
 90% of the runtime of anBiGLasso is taken up by the call to LASSO.  I could probably do
 further improvements of the remaining 10%, but there is not much point at the moment unless
 I can get a faster LASSO implementation (current one is `scikit-learn`'s).
@@ -103,8 +98,8 @@ both very quick.
 
 ![LongTermRuntimes](Plots/Runtimes%20Comparison/Compare%20Runtimes%20Small%20Sample%20Just%20anBiGLasso.png)
 
-We can see that anBiGLasso can deal with matrices ~5x larger (25x more elements) than EiGLasso in
-the same timeframe.  (EiGLasso can do 300x300 in ~40 seconds, anBiGLasso can do 1600x1600 in ~40 seconds)
+We can see that anBiGLasso can deal with matrices ~10x larger (100x more elements) than EiGLasso in
+the same timeframe.  (EiGLasso can do 300x300 in ~40 seconds, anBiGLasso can do 4000x4000 in ~40 seconds)
 
 ### Results on Simulated Data (Large Sample)
 
@@ -155,6 +150,11 @@ EiGLasso is overall an excellent algorithm, and perhaps its greatest strength in
 We investigate performance on two datasets - the 'Duck Dataset', using the same experiment as described in the original BiGLasso paper,
 and the 'Mouse Dataset', using the same experiment as described in the scBiGLasso paper.
 
+### Summary
+
+Real data often comes in a single sample.  For simpler problems like COIL, this does not pose an issue.  However, the drawbacks of this
+method do become apparent when we look at a more complicated single-sample dataset.
+
 ### COIL Dataset
 
 We would expect each frame to be conditionally dependent on nearby frames, manifesting in a precision matrix that hugs the diagonal.
@@ -175,8 +175,8 @@ indicating each of these cell types.
 
 ![Mouse anBiGLasso](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Mouse/anBiGLasso%20Performance.png)
 
-It is clear that anBiGLasso has learned some information about the problem, although it has been unable to recognize the G1 cluster
-and it has merged the S and G2M clusters.
+anBiGLasso may have learned some information about this problem, but not much - it seems to put S and G2M cells together, and does
+not recognize the G1 cluster.  This is unfortunate but not unexpected given the performance of the algorithm on small sample data.
 
 #### EiGLasso
 
