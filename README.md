@@ -185,8 +185,8 @@ not recognize the G1 cluster.  This is unfortunate but not unexpected given the 
 This seems to be do better than anBiGLasso - it successfully identifies all three clusters, although there seem to be strong connections
 between the S cluster and the others (I do not know if this is biologically plausible or not).
 
-If we increase regularization, then the G1 cluster disappears, so we should not be too hard on anBiGLasso for not learning it - it seems
-that this cluster is easy to destroy.
+If we increase regularization slightly, then the G1 cluster disappears before the cross-cluster connections,
+so we should not be too hard on anBiGLasso for not learning it - it seems that this cluster is easy to destroy.
 
 ## Asymptotic Performance
 
