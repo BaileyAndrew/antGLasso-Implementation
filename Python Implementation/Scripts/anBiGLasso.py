@@ -70,7 +70,8 @@ def shrink(
         n = Psi.shape[0]
         for r in range(n):
             row = np.delete(Psi[r, :], r, axis=0)
-            #row = np.sign(row) * LASSO(np.eye(n-1), np.abs(row), b)
+            #next two lines same as:
+            # row = np.sign(row) * LASSO(np.eye(n-1), np.abs(row), b)
             row_ = (np.abs(row) - b / 2)
             row_[row_ < 0] = 0
             row = np.sign(row) * row_
@@ -173,7 +174,7 @@ def calculateEigenvalues(
         # LASSO at the end!
         Ls = np.zeros((n+p,))
         B = np.eye(n + p, n + p)
-        B[n:, -2] = 1
+        B[n:-1, -2] = 1
         B[:n, -1] = 1
         B[-2, -1] = 1
         for it in range(B_approx_iters):
