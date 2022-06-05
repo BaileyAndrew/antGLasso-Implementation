@@ -182,7 +182,7 @@ not recognize the G1 cluster.  This is unfortunate but not unexpected given the 
 
 ![Mouse EiGLasso](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Mouse/EiGLasso%20Performance.png)
 
-This seems to be do better than EiGLasso - it successfully identifies all three clusters, although there seem to be strong connections
+This seems to be do better than anBiGLasso - it successfully identifies all three clusters, although there seem to be strong connections
 between the S cluster and the others (I do not know if this is biologically plausible or not).
 
 If we increase regularization, then the G1 cluster disappears, so we should not be too hard on anBiGLasso for not learning it - it seems
