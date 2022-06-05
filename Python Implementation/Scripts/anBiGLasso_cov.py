@@ -17,13 +17,6 @@ def anBiGLasso(
     """
     n = T.shape[0]
     p = S.shape[0]
-    
-    if B_approx_iters > min(B_approx_iters, min(n, p)):
-        # We could, and probably should, get rid of this
-        # issue by randomly sampling from the true B instead
-        # of following a fixed order for the approximation.
-        print("Warning: B_approx_iters is too high")
-        B_approx_iters = min(B_approx_iters, min(n, p))
         
     U, V = eigenvectors_MLE(T, S)
     u, v = eigenvalues_MLE(T, S, U, V, B_approx_iters)

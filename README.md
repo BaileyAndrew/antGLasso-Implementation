@@ -1,3 +1,28 @@
+# Installation
+
+We recommend installing `numpy` with intel's blas backend:
+```
+python -m pip install -i https://pypi.anaconda.org/intel/simple --extra-index-url https://pypi.org/simple numpy==1.22.2
+```
+
+This will make the code run much faster (only tested on a Mac).
+
+```
+# Other essential dependencies:
+conda install -c conda-forge scipy=1.7.3
+conda install scikit-learn=1.0.2
+```
+
+```
+# Non-essential dependencies, for the notebooks
+conda install matplotlib
+conda install pandas=1.4.2
+conda install line_profiler
+```
+
+If you want to compare results to EiGLasso, follow the instructions on their GitHub page for how to install the correct version of MKL and how to compile.  We only use their matlab interface, so the
+instructions for compiling that are the most essential.
+
 # Analytic BiGraphical Lasso
 
 This is a non-iterative algorithm for estimating the two constituent

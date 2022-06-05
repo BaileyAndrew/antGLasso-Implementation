@@ -14,13 +14,6 @@ def anBiGLasso(
     `B_approx_iters`.
     """
     (m, n, p) = Ys.shape
-    
-    if B_approx_iters > min(B_approx_iters, min(n, p)):
-        # We could, and probably should, get rid of this
-        # issue by randomly sampling from the true B instead
-        # of following a fixed order for the approximation.
-        print("Warning: B_approx_iters is too high")
-        B_approx_iters = min(B_approx_iters, min(n, p))
         
     T, S = calculate_empirical_covariances(Ys)
     U, V = eigenvectors_MLE(T, S)
@@ -167,40 +160,27 @@ def calculateEigenvalues(
     else:
         # Slightly less accurate, but much faster and more memory efficient
         Ls = np.zeros((n+p,))
+        
         #B = np.eye(n + p, n + p)
         #B[n:-1, -2] = 1
         #B[:n, -1] = 1
         #B[-2, -1] = 1
+        
+        # It may be worth creating this as a sparse array,
+        # but the version of SciPy I'm using (1.7.3) does
+        # not have good tools for it - 1.8 does, but pandas
+        # breaks when I use 1.8 at the moment.
         B_inv = np.eye(n + p, n + p)
         B_inv[n:-2, -2] = -1
         B_inv[:n, -1] = -1
         B_inv[n:-2, -1] = 1
         B_inv[-2, -1] = -1
+        
         for it in range(B_approx_iters):
             # Select the ith eigenvector of Psi,
             # and the jth eigenvector of Theta
             j = np.random.randint(0, n)
             i = np.random.randint(0, p)
-            
-            """
-            a_ = np.empty((n+p-1,))
-            rows_seen = set({})
-            offset = 0
-            for row in range(n + p):
-                # First, figure out what row
-                # we want from the full a
-                if row < n:
-                    # Get all terms involving ith eigenvector of Psi
-                    true_row = i*n + row
-                else:
-                    # Get all terms involving jth eigenvector of Theta
-                    true_row = j + (row-n)*n
-                if true_row in rows_seen:
-                    offset += 1
-                    continue
-                rows_seen.add(true_row)
-                a_[row - offset] = a[true_row]
-            """
                 
             # ignore what came before
             # We can work out that the duplicate row occurs
@@ -219,7 +199,8 @@ def calculateEigenvalues(
             a_2 = np.empty((n + p,))
             a_2[:n+p-1] = a_
             a_2[-1] = (Ls[i+n-1] / it) if it > 0 else 1
-            #out = solve_triangular(B, a_2)
+            # Tried scipy.linalg.blas.dtrmv(B_inv, a_2)
+            # but actually it ran much slower!
             out = B_inv @ a_2
             
             # Move last two cols back to i, j positions
