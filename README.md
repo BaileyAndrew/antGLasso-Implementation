@@ -59,10 +59,6 @@ in accuracy is not so much on large samples.
 
 ### Runtimes
 
-90% of the runtime of anBiGLasso is taken up by the call to LASSO.  I could probably do
-further improvements of the remaining 10%, but there is not much point at the moment unless
-I can get a faster LASSO implementation (current one is `scikit-learn`'s).
-
 scBiGLasso and EiGLasso are iterative algorithms, which means their speed can
 vary substantially depending on how fast they converge.  Empirically I've noticed
 that you will get quick convergence (and good precision/recall) if your
@@ -71,35 +67,10 @@ of freedom being twice the size of the matrix.  If you draw from the same distri
 but with half the degrees of freedom, you will get slow-converging, poor-performing
 results.  We look at both of these cases.
 
-#### Large Sample (m=100) 'Easy' Data (Quick Convergence)
+![All Together](Plots/Runtimes%20Comparison/All%20Together.png)
 
-![EasyData](Plots/Runtimes%20Comparison/Compare%20Runtimes%20Easy%20Data%20Large%20Sample.png)
-
-#### Large Sample (m=100) 'Hard' Data (Slow Convergence)
-
-![HardData](Plots/Runtimes%20Comparison/Compare%20Runtimes%20Hard%20Data%20Large%20Sample.png)
-
-It can be hard to compare anBiGLasso and EiGLasso in this plot, as they are
-both very quick.
-
-![HardData2](Plots/Runtimes%20Comparison/Compare%20Runtimes%20Hard%20Data%20No%20scBiGLasso.png)
-
-#### Small Sample (m=1) 'Easy' Data (Quick Convergence)
-
-![EasyData](Plots/Runtimes%20Comparison/Compare%20Runtimes%20Easy%20Data%20Small%20Sample.png)
-
-#### Small Sample (m=1) 'Hard' Data (Slow Convergence)
-
-![HardData](Plots/Runtimes%20Comparison/Compare%20Runtimes%20Hard%20Data%20Small%20Sample.png)
-
-#### Long-Term Small Sample Runtimes
-
-![MidTermRuntimes](Plots/Runtimes%20Comparison/Compare%20Runtimes%20Hard%20Data%20Small%20Sample%20No%20sc.png)
-
-![LongTermRuntimes](Plots/Runtimes%20Comparison/Compare%20Runtimes%20Small%20Sample%20Just%20anBiGLasso.png)
-
-We can see that anBiGLasso can deal with matrices ~10x larger (100x more elements) than EiGLasso in
-the same timeframe.  (EiGLasso can do 300x300 in ~40 seconds, anBiGLasso can do 4000x4000 in ~40 seconds)
+For large sample data, due to memory usage concerns we only tested up to 500x500 inputs rather than 5000x5000,
+but the trend should be clear.
 
 ### Results on Simulated Data (Large Sample)
 
