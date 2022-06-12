@@ -126,7 +126,8 @@ def calculateSigmas(
 
 def calculateEigenvalues(
     Sigmas: "(n, p) tensor",
-    B_approx_iters: int
+    B_approx_iters: int,
+    init_v = None
 ):
     """
     Solves system of linear equations for the eigenvalues
@@ -160,6 +161,9 @@ def calculateEigenvalues(
     else:
         # Slightly less accurate, but much faster and more memory efficient
         Ls = np.zeros((n+p,))
+        
+        if init_v is not None:
+            Ls[-p:] = init_v
         
         #B = np.eye(n + p, n + p)
         #B[n:-1, -2] = 1

@@ -10,16 +10,18 @@ def anBiGLasso(
     beta_1: "L1 penalty for Psi",
     beta_2: "L1 penalty for Theta",
     B_approx_iters: (int, "Hyperparameter") = 10,
+    eval_iters: (int, "Hyperparameter") = 1
 ):
     """
     See `calculateEigenvalues` for explanation of
     `B_approx_iters`.
+    
     """
     n = T.shape[0]
     p = S.shape[0]
         
     U, V = eigenvectors_MLE(T, S)
-    u, v = eigenvalues_MLE(T, S, U, V, B_approx_iters)
+    u, v = eigenvalues_MLE(T, S, U, V, B_approx_iters, eval_iters)
     Psi = U @ np.diag(u) @ U.T
     Theta = V @ np.diag(v) @ V.T
     
@@ -48,7 +50,7 @@ def eigenvalues_MLE(
     U: "(n, n) eigenvectors of Psi",
     V: "(p, p) eigenvectors of Theta",
     B_approx_iters: int,
-    for_testing_params = None
+    eval_iters = 1
 ):
     """
     An implementation of Theorem 3
@@ -62,15 +64,29 @@ def eigenvalues_MLE(
     n, _ = T.shape
     p, _ = S.shape
     
-    # For Psi eigenvalues
-    Sigmas = U.shape[0] * np.diag(U.T @ T @ U)
-    Sigmas = np.tile(Sigmas.reshape(n, 1), (1, p))
-    u, _ = calculateEigenvalues(Sigmas, B_approx_iters)
     
-    # For Theta eigenvalues
-    Sigmas = V.shape[0] * np.diag(V.T @ S @ V)
-    Sigmas = np.tile(Sigmas.reshape(1, p), (n, 1))
-    _, v = calculateEigenvalues(Sigmas, B_approx_iters)
+    v = np.zeros((p,))
+    
+    for it in range(eval_iters):
+    
+        # For Psi eigenvalues
+        Sigmas = U.shape[0] * np.diag(U.T @ T @ U)
+        Sigmas = np.tile(Sigmas.reshape(n, 1), (1, p))
+        u, _ = calculateEigenvalues(Sigmas, B_approx_iters, init_v=v)
+
+        # For Theta eigenvalues
+        Sigmas = V.shape[0] * np.diag(V.T @ S @ V)
+        Sigmas = np.tile(Sigmas.reshape(p, 1), (1, n))#np.tile(Sigmas.reshape(1, p), (n, 1))
+        v, _ = calculateEigenvalues(Sigmas, B_approx_iters, init_v=u)
     
     
-    return np.abs(u), np.abs(v)
+    """
+    T_d = np.diag(U.T @ T @ U)
+    S_d = np.diag(V.T @ S @ V)
+    
+    # Get good results if I take the reciprocal, too!
+    u = (n / p) * T_d - (n / (1 + n*p)) * ((n / p) * T_d.sum() - p * S_d.sum())
+    v = (p / n) * S_d - (p / (1 + n*p)) * ((p / n) * S_d.sum() - n * T_d.sum())
+    """
+    
+    return u, v
