@@ -17,6 +17,10 @@ eng.addpath(
     '/Users/baileyandrew/Desktop/Python Notebooks.nosync/Research/scBiGLasso '
     + 'Implementation/Scalable_Bigraphical_Lasso'
 )
+eng.addpath(
+    '/Users/baileyandrew/Desktop/Python Notebooks.nosync/Research/scBiGLasso '
+    + 'Implementation/Scalable_Bigraphical_Lasso/glmnet_matlab'
+)
 
 def scBiGLasso(Ys, beta_1, beta_2):
     T, S = calculate_empirical_covariances(Ys)
@@ -24,10 +28,10 @@ def scBiGLasso(Ys, beta_1, beta_2):
     S_matlab = matlab.double(S)
     b_matlab = matlab.double(np.array([beta_1, beta_2]))
     
-    _, _, Psi_matlab, Theta_matlab = eng.scBiGLasso(
+    _, _, Psi_matlab, Theta_matlab = eng.scBiglasso(
         S_matlab,
         T_matlab,
-        b_matlab
+        b_matlab,
         nargout=4,
         stdout=io.StringIO()
     )

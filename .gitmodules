@@ -4,6 +4,3 @@
 [submodule "teralasso"]
 	path = teralasso
 	url = https://github.com/kgreenewald/teralasso
-[submodule "Scalable_Bigraphical_Lasso"]
-	path = Scalable_Bigraphical_Lasso
-	url = https://github.com/luisacutillo78/Scalable_Bigraphical_Lasso
