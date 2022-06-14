@@ -1,7 +1,5 @@
 import numpy as np
-from scipy.linalg import solve_triangular
 from Scripts.utilities import K, LASSO
-from Scripts.nonparanormal import nonparanormal
 
 def anBiGLasso(
     Ys: "(m, n, p) input tensor",
@@ -143,7 +141,8 @@ def calculateEigenvalues(
     (n, p) = Sigmas.shape
     invSigs = 1 / Sigmas
     
-    a = invSigs.T.reshape((n*p,))
+    a = invSigs.reshape(-1, order='F')
+    
     if B_approx_iters == -1:
         # Most accurate, but increases space complexity
         # from n^2 + p^2 to pn^2 + np^2 !!
@@ -175,25 +174,32 @@ def calculateEigenvalues(
         # not have good tools for it - 1.8 does, but pandas
         # breaks when I use 1.8 at the moment.
         B_inv = np.eye(n + p, n + p)
-        B_inv[n:-2, -2] = -1
+        B_inv[n-1:-2, -2] = -1
         B_inv[:n, -1] = -1
-        B_inv[n:-2, -1] = 1
+        B_inv[n-1:-2, -1] = 1
         B_inv[-2, -1] = -1
         
+        B_approx_iters=1#DEBUG
         for it in range(B_approx_iters):
-            # Select the ith eigenvector of Psi,
-            # and the jth eigenvector of Theta
-            j = np.random.randint(0, n)
-            i = np.random.randint(0, p)
+            # Select the ith eigenvalue of Psi,
+            # and the jth eigenvalue of Theta
+            #j = np.random.randint(0, n)
+            #i = np.random.randint(0, p)
+            i = 0
+            j = 0
                 
             # ignore what came before
             # We can work out that the duplicate row occurs
             # when, for integer x, j+x*n is in [i*n, i*n+n)
             # We can use this to work out the index to delete
+            print(a)
             a_ = np.concatenate([
                 a[i*n:i*n+n],
                 np.delete(a[j::n], ((i*n + n - j - 1) // n))
             ])
+            
+            print(a_)
+            
                 
             a_[j:] = np.roll(a_[j:], -1)
             
@@ -203,6 +209,7 @@ def calculateEigenvalues(
             a_2 = np.empty((n + p,))
             a_2[:n+p-1] = a_
             a_2[-1] = (Ls[i+n-1] / it) if it > 0 else 1
+            
             # Tried scipy.linalg.blas.dtrmv(B_inv, a_2)
             # but actually it ran much slower!
             out = B_inv @ a_2
@@ -210,6 +217,7 @@ def calculateEigenvalues(
             # Move last two cols back to i, j positions
             out[i+n-1:] = np.roll(out[i+n-1:], 1)
             out[j:] = np.roll(out[j:], 1)
+            print(out)
             Ls += out
         Ls /= B_approx_iters
     

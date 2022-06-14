@@ -10,8 +10,11 @@ from Scripts.utilities import *
 from Scripts.scBiGLasso import *
 from Scripts.anBiGLasso import *
 from Scripts.EiGLasso import *
+from Scripts.TeraLasso import *
 from Scripts.anBiGLasso_cov import anBiGLasso as anBiGLasso_cov
+from Scripts.antGLasso import antGLasso
 from Scripts.nonparanormal_skeptic import *
+from cycler import cycler
 
 def get_cms_for_betas(
     betas_to_try: "List of L1 penalties to try",
@@ -191,4 +194,189 @@ def create_precision_recall_curves(
         Theta_cms,
         indices_to_highlight,
         f"Precision-Recall Plots for {n}x{n} Psi/Theta as L1 Penalty β Varies ({m} samples)"
+    )
+
+def get_cms_for_betas_all_algs(
+    betas_to_try: "List of L1 penalties to try",
+    attempts: "Amount of times we run the experiment to average over",
+    kwargs_gen: "Dictionary of parameters for generating random data",
+    cm_mode: "`mode` argument for `generate_confusion_matrices`" = "Negative",
+    algorithms = None,
+    verbose: bool = False
+) -> (
+    "List of all average confusion matrices for Psi",
+    "List of all average confusion matrices for Theta",
+):
+    """
+    We want to be able to make ROC curves parameterized by
+    the L1 penalty.  This function will return confusion matrices
+    to aid in that endeavor.
+    
+    We enforce beta_1 = beta_2.
+    """
+    
+    if algorithms is None:
+        algorithms = ["scBiGLasso", "anBiGLasso", "anBiGLasso_cov", "EiGLasso", "TeraLasso"]
+    
+    Psi_cms = np.zeros((*betas_to_try.shape, 2, 2))
+    Theta_cms = np.zeros((*betas_to_try.shape, 2, 2))
+    for idx_alg, alg in enumerate(algorithms):
+        if verbose:
+            print(f"Trying algorithm: {alg}")
+        for idx_b, b in enumerate(betas_to_try[idx_alg]):
+            if verbose:
+                print(f"\tTrying beta={b:.6f}")
+            for attempt in range(attempts):
+                Psi_gen, Theta_gen, Ys = generate_Ys(**kwargs_gen)
+                if alg == "scBiGLasso":
+                    Psi, Theta = scBiGLasso(
+                        Ys=Ys,
+                        beta_1=b,
+                        beta_2=b,
+                        Psi_init=None,
+                        Theta_init=None,
+                        N=100,
+                        eps=10e-3
+                    )
+                elif alg == "anBiGLasso":
+                    Psi, Theta = anBiGLasso(
+                        Ys=Ys,
+                        beta_1=b,
+                        beta_2=b,
+                        B_approx_iters=10
+                    )
+                elif alg == "antGLasso":
+                    Psis = antGLasso(
+                        Ys=Ys,
+                        betas=[b, b],
+                        B_approx_iters=10
+                    )
+                    Psi = Psis[0]
+                    Theta = Psis[1]
+                elif alg == "Hungry anBiGLasso":
+                    Psi, Theta = anBiGLasso(
+                        Ys=Ys,
+                        beta_1=b,
+                        beta_2=b,
+                        B_approx_iters=-1
+                    )
+                elif alg == "anBiGLasso_cov":
+                    T, S = calculate_empirical_covariance_matrices(Ys)
+                    Psi, Theta = anBiGLasso_cov(
+                        T=T,
+                        S=S,
+                        beta_1=b,
+                        beta_2=b,
+                        B_approx_iters=10
+                    )
+                elif alg == "EiGLasso":
+                    Psi, Theta = EiGLasso(
+                        Ys=Ys,
+                        beta_1=b,
+                        beta_2=b
+                    )
+                elif alg == "TeraLasso":
+                    Psi, Theta = TeraLasso(
+                        Ys,
+                        [b, b]
+                    )
+                else:
+                    raise ValueError(f"no such algorithm {alg}")
+                Psi_cms[idx_alg, idx_b, ...] += generate_confusion_matrices(
+                    Psi,
+                    Psi_gen,
+                    mode=cm_mode
+                ) / attempts
+                Theta_cms[idx_alg, idx_b, ...] += generate_confusion_matrices(
+                    Theta,
+                    Theta_gen,
+                    mode=cm_mode
+                ) / attempts
+                # End of attempts loop
+            # End of betas loop
+        # End of algorithms loop
+    return Psi_cms, Theta_cms
+
+def make_cm_plots_all_algs(
+    Psi_cms: "Corresponding confusion matrices for Psi",
+    Theta_cms: "Corresponding confusion matrices for Theta",
+    algorithms = None,
+    title = None
+) -> ("Matplotlib Figure", "Tuple of Axes"):
+    if algorithms is None:
+        algorithms = ["scBiGLasso", "anBiGLasso", "anBiGLasso_cov", "EiGLasso", "TeraLasso"]
+    with plt.style.context('Solarize_Light2'):
+        plt.rcParams['axes.prop_cycle'] = cycler(color=[
+            '#006BA4',
+            '#FF800E',
+            '#ABABAB',
+            '#595959',
+            '#5F9ED1',
+            '#C85200',
+            '#898989',
+            '#A2C8EC',
+            '#FFBC79',
+            '#CFCFCF'
+        ])
+        fig, (ax1, ax2) = plt.subplots(figsize=(16, 8), ncols=2)
+        for confmats, ax, name in (
+            (Psi_cms, ax1, "Psi"),
+            (Theta_cms, ax2, "Theta")
+        ):
+            precisions = dict({})
+            recalls = dict({})
+            for idx_alg, alg in enumerate(algorithms):
+                precisions[name] = [precision(cm) for cm in confmats[idx_alg, ...]]
+                recalls[name] = [recall(cm) for cm in confmats[idx_alg, ...]]
+                ax.plot(recalls[name], precisions[name], label=alg)
+                ax.set_xlabel("Recall")
+                ax.set_ylabel("Precision")
+                ax.set_title(name)
+                ax.set_xlim([0, 1])
+                ax.set_ylim([0, 1])
+                ax.legend()
+        if title is not None:
+            fig.suptitle(title, fontsize=16)
+        return fig, (ax1, ax2)
+    
+    
+def create_precision_recall_curves_all(
+    betas_to_try: "Tensor of L1 penalties to try",
+    m: "Amount of samples",
+    p: "Size of Psi/Theta",
+    attempts: "Number of times to average over" = 100,
+    verbose: bool = False,
+    algorithms: list = None,
+    df_scale: "int >= 1" = 1,
+    cm_mode = "Negative",
+    title = None
+):
+    """
+    Given a list of L1 penalties, calculate the 
+    """
+    n = p
+    kwargs_gen = {
+        'm': m,
+        'p': p,
+        'n': n,
+        'structure': 'Kronecker Sum',
+        'expected_nonzero_psi': p**2 / 5,
+        'expected_nonzero_theta': n**2 / 5,
+        'df_scale': df_scale
+    }
+
+    Psi_cms, Theta_cms = get_cms_for_betas_all_algs(
+        betas_to_try,
+        attempts=attempts,
+        kwargs_gen=kwargs_gen,
+        algorithms=algorithms,
+        verbose=verbose,
+        cm_mode=cm_mode
+    )
+    
+    return make_cm_plots_all_algs(
+        Psi_cms,
+        Theta_cms,
+        algorithms=algorithms,
+        title=title
     )

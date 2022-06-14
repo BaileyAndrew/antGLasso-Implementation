@@ -5,6 +5,7 @@ This is a python wrapper for TeraLasso
 import matlab.engine
 import io
 import numpy as np
+from Scripts.antGLasso import nmode_gram
 
 eng = matlab.engine.start_matlab()
 # It will be obvious which path you need, as matlab.engine is
@@ -16,9 +17,6 @@ eng.addpath(
     '/Users/baileyandrew/Desktop/Python Notebooks.nosync/Research/scBiGLasso '
     + 'Implementation/TeraLasso'
 )
-
-def nmode_gram(A, n):
-    return np.tensordot(A, A, axes=(n, n))
 
 def TeraLasso(Ys, betas):
     n, *d = Ys.shape

@@ -76,7 +76,7 @@ def eigenvalues_MLE(
 
         # For Theta eigenvalues
         Sigmas = V.shape[0] * np.diag(V.T @ S @ V)
-        Sigmas = np.tile(Sigmas.reshape(p, 1), (1, n))#np.tile(Sigmas.reshape(1, p), (n, 1))
+        Sigmas = np.tile(Sigmas.reshape(p, 1), (1, n))
         v, _ = calculateEigenvalues(Sigmas, B_approx_iters, init_v=u)
     
     
