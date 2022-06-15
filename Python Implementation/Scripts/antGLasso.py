@@ -47,13 +47,14 @@ def eigenvalues_MLE(Ys, Vs, B_approx_iters):
 def calculateEigenvalues(Sigmas, B_approx_iters):
     ds = np.array(Sigmas.shape)
     K = len(ds)
-    a_vals = (1 / Sigmas).reshape(-1, order='F')
+    a = (1 / Sigmas).reshape(-1, order='F')
     B_inv = create_B_inverse(ds)
         
     Ls = np.zeros(sum(ds))
     
     #B_approx_iters=1#DEBUG
     for it in range(B_approx_iters):
+        a_vals = a.copy()
         # Select random eigenvalues
         idxs = np.random.randint(0, ds)
         #idxs = [1, 2]
@@ -104,10 +105,12 @@ def calculateEigenvalues(Sigmas, B_approx_iters):
         #print(f"Ells @ indices {ell_vals} = B_inv @ As at indices {shrunk} concat Ells at indices {ell_vals[-K+1]}")
         
         #print(B_inv)
-        
+        #print(B_inv.shape)
+        #print(shrunk.shape)
+        #print(Ls[ell_vals[-K+1:]].shape)
         out = B_inv @ np.concatenate([
-            a_vals,
-            Ls[ell_vals] / it if it >= 1 else 0*Ls[ell_vals]+1
+            shrunk,
+            Ls[ell_vals[-K+1:]] / it if it >= 1 else 0*Ls[ell_vals[-K+1:]]+1
         ])
         
         Ls += out
