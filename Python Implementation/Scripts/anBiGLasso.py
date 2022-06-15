@@ -155,7 +155,7 @@ def calculateEigenvalues(
             B[row, :] = 0
             B[row, i] = 1
             B[row, n+j] = 1
-
+        print(B)
         Ls = np.linalg.lstsq(B, a, rcond=None)[0]
     else:
         # Slightly less accurate, but much faster and more memory efficient
@@ -179,26 +179,28 @@ def calculateEigenvalues(
         B_inv[n-1:-2, -1] = 1
         B_inv[-2, -1] = -1
         
-        B_approx_iters=1#DEBUG
+        #print(B_inv)
+        
+        #B_approx_iters=1#DEBUG
         for it in range(B_approx_iters):
             # Select the ith eigenvalue of Psi,
             # and the jth eigenvalue of Theta
-            #j = np.random.randint(0, n)
-            #i = np.random.randint(0, p)
-            i = 0
-            j = 0
+            j = np.random.randint(0, n)
+            i = np.random.randint(0, p)
+            #i = 1
+            #j = 2
                 
             # ignore what came before
             # We can work out that the duplicate row occurs
             # when, for integer x, j+x*n is in [i*n, i*n+n)
             # We can use this to work out the index to delete
-            print(a)
+            #print(a)
             a_ = np.concatenate([
                 a[i*n:i*n+n],
                 np.delete(a[j::n], ((i*n + n - j - 1) // n))
             ])
             
-            print(a_)
+            #print(a_)
             
                 
             a_[j:] = np.roll(a_[j:], -1)
@@ -217,7 +219,6 @@ def calculateEigenvalues(
             # Move last two cols back to i, j positions
             out[i+n-1:] = np.roll(out[i+n-1:], 1)
             out[j:] = np.roll(out[j:], 1)
-            print(out)
             Ls += out
         Ls /= B_approx_iters
     

@@ -45,101 +45,74 @@ def eigenvalues_MLE(Ys, Vs, B_approx_iters):
     return u, v
 
 def calculateEigenvalues(Sigmas, B_approx_iters):
-    d = np.array(Sigmas.shape)
-    K = len(d)
-    a = (1 / Sigmas).reshape(-1, order='F')
-    B_inv = create_B_inverse(d)
+    ds = np.array(Sigmas.shape)
+    K = len(ds)
+    a_vals = (1 / Sigmas).reshape(-1, order='F')
+    B_inv = create_B_inverse(ds)
         
-    Ls = np.zeros(sum(d))
+    Ls = np.zeros(sum(ds))
     
-    B_approx_iters=1#DEBUG
+    #B_approx_iters=1#DEBUG
     for it in range(B_approx_iters):
         # Select random eigenvalues
-        #idxs = np.random.randint(0, d)
-        idxs = [0, 0]
+        idxs = np.random.randint(0, ds)
+        #idxs = [1, 2]
+        
+        #print(ell_vals := np.arange(np.sum(ds)))
+        ell_vals = np.arange(np.sum(ds))
 
-        # ignore what came before
-        # We can work out that the duplicate row occurs
-        # when, for integer x, j+x*n is in [i*n, i*n+n)
-        # We can use this to work out the index to delete
-        print('---')
-        print(a)
-        
-        """
-        # Get first row
-        first_row = np.sum(idxs[ell]*np.prod(d[:ell]) for ell in range(K))
-        a_ = a[first_row:first_row+1]
-        a = np.delete(a, first_row, axis=0)
-        """
-        
-        a_ = a[0:1]
-        a = a[1:]
-        step = 1
-        for ell in range(K):
-            print(a_)
-            a_ = np.concatenate([
-                a_,
-                a[idxs[ell]::step][:d[ell]-1]
+        #print("\nNow, swap relevant columns")
+        for i, val in enumerate(idxs):
+            offset = np.sum(ds[:i])
+            ell_vals[offset:val+1+offset] = np.roll(ell_vals[offset:val+1+offset], 1)
+        #print(f"Ells: {ell_vals}")
+
+        #print("\nAnd the row chunks")
+        for i, val in enumerate(idxs):
+            chunk_size = np.prod(ds[:i])
+            num_chunks = np.prod(ds[i+1:])
+
+            # Break up into chunk_size blocks
+            split_mat = np.array(np.split(a_vals, num_chunks))
+            temp = split_mat[:, :chunk_size].copy()
+            split_mat[:, :chunk_size] = split_mat[:, val*chunk_size:(val+1)*chunk_size]
+            split_mat[:, val*chunk_size:(val+1)*chunk_size] = temp
+            a_vals = split_mat.reshape(-1)
+        #print(f"As: {a_vals}")
+
+        #print("Now grab the rows we want")
+        shrunk = a_vals[0:1] # First row
+        a_vals = a_vals[1:]
+        for i, val in enumerate(ds):
+            step_size = np.prod(ds[:i])
+            amount = val-1
+            shrunk = np.concatenate([
+                shrunk,
+                a_vals[0::step_size][:amount]
             ])
-            a = a[step:]
-            step *= d[ell]
+            a_vals = a_vals[step_size*amount:]
+        #print(f"As: {shrunk}")
+
+        #print("Move columns to end")
+        for i, val in enumerate(idxs):
+            # We subtract `i` to account for the fact that we've
+            # already moved earlier columns!
+            offset = np.sum(ds[:i])-i
+            ell_vals[offset:] = np.roll(ell_vals[offset:], -1)
+        #print(f"Ells: {ell_vals}")
+
+        #print(f"Ells @ indices {ell_vals} = B_inv @ As at indices {shrunk} concat Ells at indices {ell_vals[-K+1]}")
         
-        """
-        for ell in range(K):
-            offset = np.sum([idxs[n]*np.sum(d[:n]) for n in range(K) if n != ell])
-            step = np.prod(d[ell])
-            #print(offset)
-            #print(step)
-            a_ = np.concatenate([
-                a_,
-                np.delete(a[offset::step][:d[ell]], idxs[ell])
-            ])
-        """
+        #print(B_inv)
         
-        if it == 0:
-            # If no previous guesses, initialize to 1
-            a_ = np.concatenate([
-                a_,
-                np.ones(K-1)
-            ])
-        else:
-            for ell in range(K-1):
-                # Add previous guesses
-                a_ = np.concatenate([
-                    a_,
-                    np.array([Ls[np.sum(d[:ell]) + idxs[ell]] / (B_approx_iters - 1)])
-                ])
-                
-        print(a_)
-                
-        # Apply P_2 matrix
-        a_[:np.sum(d)-K+1] = np.roll(a_[:np.sum(d)-K+1], -1)
-        
-        # Apply B^-1 matrix
-        out = B_inv @ a_
-        
-        
-        # Apply P_1 matrix
-        """
-        idxs_ = [idxs[ell] + np.sum(d[:ell]) for ell in range(K)]
-        move_cols = out[idxs] # creates copy of columns to put on end
-        print(np.delete(out, idxs_))
-        out = np.concatenate([
-            np.delete(out, idxs_),
-            move_cols
+        out = B_inv @ np.concatenate([
+            a_vals,
+            Ls[ell_vals] / it if it >= 1 else 0*Ls[ell_vals]+1
         ])
-        print(out)
-        """
-        idxs_ = [idxs[ell] + np.sum(d[:ell]) for ell in range(K)]
-        for ell in range(K):
-            out[idxs_[-(ell+1)]-(K-ell-1):] = np.roll(
-                out[idxs_[-(ell+1)]-(K-ell-1):],
-                1
-            )
+        
         Ls += out
-        print(out)
     Ls /= B_approx_iters
-    return [Ls[np.sum(d[:ell]):np.sum(d[:ell+1])] for ell in range(K)]
+    return [Ls[np.sum(ds[:ell]):np.sum(ds[:ell+1])] for ell in range(K)]
     
 
 def rescaleYs(
