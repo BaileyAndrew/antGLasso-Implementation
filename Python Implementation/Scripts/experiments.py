@@ -44,7 +44,7 @@ def get_cms_for_betas(
         Psi_cm = np.empty((2, 2))
         Theta_cm = np.empty((2, 2))
         for attempt in range(attempts):
-            Psi_gen, Theta_gen, Ys = generate_Ys(**kwargs_gen)
+            (Psi_gen, Theta_gen), Ys = generate_Ys(**kwargs_gen)
             if alg == "scBiGLasso":
                 Psi, Theta = scBiGLasso(
                     Ys=Ys,
@@ -227,7 +227,7 @@ def get_cms_for_betas_all_algs(
             if verbose:
                 print(f"\tTrying beta={b:.6f}")
             for attempt in range(attempts):
-                Psi_gen, Theta_gen, Ys = generate_Ys(**kwargs_gen)
+                (Psi_gen, Theta_gen), Ys = generate_Ys(**kwargs_gen)
                 if alg == "scBiGLasso":
                     Psi, Theta = scBiGLasso(
                         Ys=Ys,
@@ -354,14 +354,10 @@ def create_precision_recall_curves_all(
     """
     Given a list of L1 penalties, calculate the 
     """
-    n = p
     kwargs_gen = {
         'm': m,
-        'p': p,
-        'n': n,
-        'structure': 'Kronecker Sum',
-        'expected_nonzero_psi': p**2 / 5,
-        'expected_nonzero_theta': n**2 / 5,
+        'ds': [p, p],
+        'expected_nonzero': p**2 / 5,
         'df_scale': df_scale
     }
 
