@@ -49,4 +49,15 @@ def TeraLasso(Ys, betas):
     for Psi in Psis_matlab:
         Psis.append(np.asarray(Psi))
     
-    return Psis
+    # Note: the ordering convention seems to be different
+    # between antGLasso and TeraLasso?
+    if len(Psis) == 2:
+        return Psis
+    elif len(Psis) == 3:
+        return [Psis[0], Psis[2], Psis[1]]
+    else:
+        print(
+            "Warning - ordering convention for TeraLasso seems different"
+            + "So results may seem wrong unless you mix things around"
+        )
+        return Psis
