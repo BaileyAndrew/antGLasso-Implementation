@@ -478,7 +478,7 @@ def make_cm_plots_tensor(
     algorithms = None,
     title = None
 ) -> ("Matplotlib Figure", "Tuple of Axes"):
-    D = len(Psis_cms)
+    D = Psis_cms.shape[2]
     if algorithms is None:
         algorithms = ["antGLasso", "TeraLasso"]
     with plt.style.context('Solarize_Light2'):

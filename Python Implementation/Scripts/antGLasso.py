@@ -52,36 +52,29 @@ def calculateEigenvalues(Sigmas, B_approx_iters):
         
     Ls = np.zeros(sum(ds))
     
-    #B_approx_iters=1#DEBUG
     for it in range(B_approx_iters):
         a_vals = a.copy()
         # Select random eigenvalues
         idxs = np.random.randint(0, ds)
-        #idxs = [1, 2]
         
-        #print(ell_vals := np.arange(np.sum(ds)))
         ell_vals = np.arange(np.sum(ds))
 
-        #print("\nNow, swap relevant columns")
         for i, val in enumerate(idxs):
             offset = np.sum(ds[:i])
             ell_vals[offset:val+1+offset] = np.roll(ell_vals[offset:val+1+offset], 1)
-        #print(f"Ells: {ell_vals}")
 
-        #print("\nAnd the row chunks")
         for i, val in enumerate(idxs):
             chunk_size = np.prod(ds[:i])
             num_chunks = np.prod(ds[i+1:])
 
             # Break up into chunk_size blocks
-            split_mat = np.array(np.split(a_vals, num_chunks))
+            #split_mat = np.array(np.split(a_vals, num_chunks))
+            split_mat = a_vals.reshape(num_chunks, -1) # TEST
             temp = split_mat[:, :chunk_size].copy()
             split_mat[:, :chunk_size] = split_mat[:, val*chunk_size:(val+1)*chunk_size]
             split_mat[:, val*chunk_size:(val+1)*chunk_size] = temp
             a_vals = split_mat.reshape(-1)
-        #print(f"As: {a_vals}")
 
-        #print("Now grab the rows we want")
         shrunk = a_vals[0:1] # First row
         a_vals = a_vals[1:]
         for i, val in enumerate(ds):
@@ -92,22 +85,13 @@ def calculateEigenvalues(Sigmas, B_approx_iters):
                 a_vals[0::step_size][:amount]
             ])
             a_vals = a_vals[step_size*amount:]
-        #print(f"As: {shrunk}")
 
-        #print("Move columns to end")
         for i, val in enumerate(idxs):
             # We subtract `i` to account for the fact that we've
             # already moved earlier columns!
             offset = np.sum(ds[:i])-i
             ell_vals[offset:] = np.roll(ell_vals[offset:], -1)
-        #print(f"Ells: {ell_vals}")
 
-        #print(f"Ells @ indices {ell_vals} = B_inv @ As at indices {shrunk} concat Ells at indices {ell_vals[-K+1]}")
-        
-        #print(B_inv)
-        #print(B_inv.shape)
-        #print(shrunk.shape)
-        #print(Ls[ell_vals[-K+1:]].shape)
         out = B_inv @ np.concatenate([
             shrunk,
             Ls[ell_vals[-K+1:]] / it if it >= 1 else 0*Ls[ell_vals[-K+1:]]+1
