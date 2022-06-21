@@ -380,3 +380,135 @@ def create_precision_recall_curves_all(
         algorithms=algorithms,
         title=title
     )
+
+def get_cms_for_betas_tensor(
+    betas_to_try: "List of L1 penalties to try",
+    attempts: "Amount of times we run the experiment to average over",
+    kwargs_gen: "Dictionary of parameters for generating random data",
+    cm_mode: "`mode` argument for `generate_confusion_matrices`" = "Negative",
+    algorithms = None,
+    verbose: bool = False
+) -> (
+    "List of all average confusion matrices for Psi",
+    "List of all average confusion matrices for Theta",
+):
+    """
+    We want to be able to make ROC curves parameterized by
+    the L1 penalty.  This function will return confusion matrices
+    to aid in that endeavor.
+    
+    We enforce beta_1 = beta_2.
+    """
+    
+    ds = kwargs_gen['ds']
+    
+    if algorithms is None:
+        algorithms = ["antGLasso", "TeraLasso"]
+    
+    Psis_cms = np.zeros((*betas_to_try.shape, len(ds), 2, 2))
+    for idx_alg, alg in enumerate(algorithms):
+        if verbose:
+            print(f"Trying algorithm: {alg}")
+        for idx_b, b in enumerate(betas_to_try[idx_alg]):
+            if verbose:
+                print(f"\tTrying beta={b:.6f}")
+            for attempt in range(attempts):
+                Psis_gen, Ys = generate_Ys(**kwargs_gen)
+                if alg == "antGLasso":
+                    Psis = antGLasso(
+                        Ys=Ys,
+                        betas=[b for _ in ds],
+                        B_approx_iters=10
+                    )
+                elif alg == "TeraLasso":
+                    Psis = TeraLasso(
+                        Ys,
+                        [b for _ in ds]
+                    )
+                else:
+                    raise ValueError(f"no such algorithm {alg}")
+                Psis_cms[idx_alg, idx_b, ...] += np.array([generate_confusion_matrices(
+                    Psis[idx],
+                    Psis_gen[idx],
+                    mode=cm_mode
+                ) for idx in range(len(ds))]) / attempts
+                # End of attempts loop
+            # End of betas loop
+        # End of algorithms loop
+    return Psis_cms
+
+def create_precision_recall_curves_tensor(
+    betas_to_try: "Tensor of L1 penalties to try",
+    m: "Amount of samples",
+    ds: "List of sizes of precision matrices",
+    attempts: "Number of times to average over" = 100,
+    verbose: bool = False,
+    algorithms: list = None,
+    df_scale: "int >= 1" = 1,
+    cm_mode = "Negative",
+    title = None
+):
+    """
+    Given a list of L1 penalties, calculate the 
+    """
+    kwargs_gen = {
+        'm': m,
+        'ds': ds,
+        'expected_nonzero': ds[0]**2 / 5,
+        'df_scale': df_scale
+    }
+
+    Psis_cms = get_cms_for_betas_tensor(
+        betas_to_try,
+        attempts=attempts,
+        kwargs_gen=kwargs_gen,
+        algorithms=algorithms,
+        verbose=verbose,
+        cm_mode=cm_mode
+    )
+    
+    return make_cm_plots_tensor(
+        Psis_cms,
+        algorithms=algorithms,
+        title=title
+    )
+
+def make_cm_plots_tensor(
+    Psis_cms: "List of corresponding confusion matrices for each Psi",
+    algorithms = None,
+    title = None
+) -> ("Matplotlib Figure", "Tuple of Axes"):
+    D = len(Psis_cms)
+    if algorithms is None:
+        algorithms = ["antGLasso", "TeraLasso"]
+    with plt.style.context('Solarize_Light2'):
+        plt.rcParams['axes.prop_cycle'] = cycler(color=[
+            '#006BA4',
+            '#FF800E',
+            '#ABABAB',
+            '#595959',
+            '#5F9ED1',
+            '#C85200',
+            '#898989',
+            '#A2C8EC',
+            '#FFBC79',
+            '#CFCFCF'
+        ])
+        fig, axs = plt.subplots(figsize=(8, 8*D), nrows=D)
+        for idx, (confmats, ax) in enumerate(zip(np.rollaxis(Psis_cms, 2), axs)):
+            name = f"Psi{idx}"
+            precisions = dict({})
+            recalls = dict({})
+            for idx_alg, alg in enumerate(algorithms):
+                precisions[name] = [precision(cm) for cm in confmats[idx_alg, ...]]
+                recalls[name] = [recall(cm) for cm in confmats[idx_alg, ...]]
+                ax.plot(recalls[name], precisions[name], label=alg)
+                ax.set_xlabel("Recall")
+                ax.set_ylabel("Precision")
+                ax.set_title(name)
+                ax.set_xlim([0, 1])
+                ax.set_ylim([0, 1])
+                ax.legend()
+        if title is not None:
+            fig.suptitle(title, fontsize=16)
+        return fig, axs

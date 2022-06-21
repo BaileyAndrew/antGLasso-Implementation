@@ -75,6 +75,35 @@ def fast_matrix_normal_ks(
     
     return Ys
 
+def fast_tensor_normal_ks(
+    Psis: "List of (d_i, d_i) precision matrices, of length K >= 2",
+    size: "Number of samples"
+) -> "Kronecker sum distributed tensor":
+    K = len(Psis)
+    ds = [Psi.shape[0] for Psi in Psis]
+    vs, Vs = zip(*[np.linalg.eigh(Psi) for Psi in Psis])
+    
+    diag_precisions = vs[0]
+    for idx, v in enumerate(vs):
+        if idx == 0:
+            # Already accounted for vs[0]
+            continue
+        diag_precisions = kron_sum_diag(diag_precisions, v)
+    
+    z = multivariate_normal(cov=1).rvs(
+        size=size*np.prod(ds)
+    ).reshape(size, np.prod(ds)) / np.sqrt(diag_precisions)
+    
+    Xs: "Sample of diagonalized distribution" = z.reshape(size, *ds)
+    
+    for k in range(K):
+        Xs = np.moveaxis(
+            np.moveaxis(Xs, k+1, -1) @ Vs[k].T,
+            -1,
+            k+1
+        )
+    return Xs
+
 def generate_sparse_posdef_matrix(
     n: "Number of rows/columns of output",
     expected_nonzero: "Number of nondiagonal nonzero entries expected",
@@ -110,9 +139,33 @@ def generate_sparse_posdef_matrix(
     Psi /= np.trace(Psi, axis1=1, axis2=2).reshape(size, 1, 1) / n
     
     return Psi
-            
-
+    
 def generate_Ys(
+    m: "Number of Samples",
+    ds: "List of shapes of precision matrices",
+    *,
+    expected_nonzero: "Number of nondiagonal nonzero entries expected in Psis",
+    off_diagonal_scale: "Value strictly between 0 and 1 to guarantee inverse" = 0.9,
+    df_scale: "How much to multiply the df parameter of invwishart, must be >= 1" = 1
+) -> "List of precision matrices, (m, *ds) sample tensor":
+    Psis = []
+    for d in ds:
+        Psi: "(d, d)" = generate_sparse_posdef_matrix(
+            d,
+            expected_nonzero,
+            off_diagonal_scale=off_diagonal_scale,
+            size=1,
+            df_scale=df_scale
+        ).squeeze()
+        Psis.append(Psi)
+        
+    Ys = fast_tensor_normal_ks(Psis, m)
+    if (m > 1):
+        Ys -= Ys.mean(axis=0)
+        
+    return Psis, Ys
+
+def generate_Ys_old(
     m: "Number of Samples",
     p: "Number of Datapoints",
     n: "Number of Features",

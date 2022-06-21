@@ -155,7 +155,6 @@ def calculateEigenvalues(
             B[row, :] = 0
             B[row, i] = 1
             B[row, n+j] = 1
-        print(B)
         Ls = np.linalg.lstsq(B, a, rcond=None)[0]
     else:
         # Slightly less accurate, but much faster and more memory efficient

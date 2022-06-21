@@ -41,8 +41,8 @@ def eigenvalues_MLE(Ys, Vs, B_approx_iters):
     Xs = rescaleYs(Ys, Vs)
     Sigmas = calculateSigmas(Xs)
     
-    u, v = calculateEigenvalues(Sigmas, B_approx_iters)
-    return u, v
+    vs = calculateEigenvalues(Sigmas, B_approx_iters)
+    return vs
 
 def calculateEigenvalues(Sigmas, B_approx_iters):
     ds = np.array(Sigmas.shape)
