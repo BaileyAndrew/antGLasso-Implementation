@@ -370,12 +370,16 @@ def create_precision_recall_curves_all(
         cm_mode=cm_mode
     )
     
-    return make_cm_plots_all_algs(
+    data_out = np.empty((*betas_to_try.shape, 2, 2, 2))
+    data_out[:, :, 0, :, :] = Psi_cms
+    data_out[:, :, 1, :, :] = Theta_cms
+    
+    return *make_cm_plots_all_algs(
         Psi_cms,
         Theta_cms,
         algorithms=algorithms,
         title=title
-    )
+    ), data_out
 
 def get_cms_for_betas_tensor(
     betas_to_try: "List of L1 penalties to try",
@@ -463,11 +467,11 @@ def create_precision_recall_curves_tensor(
         cm_mode=cm_mode
     )
     
-    return make_cm_plots_tensor(
+    return *make_cm_plots_tensor(
         Psis_cms,
         algorithms=algorithms,
         title=title
-    )
+    ), Psis_cms
 
 def make_cm_plots_tensor(
     Psis_cms: "List of corresponding confusion matrices for each Psi",
