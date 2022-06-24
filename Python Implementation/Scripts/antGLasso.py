@@ -1,26 +1,38 @@
 import numpy as np
 from scipy.linalg import solve_triangular
-from Scripts.utilities import K, LASSO
+from Scripts.utilities import K
 
 def antGLasso(
     Ys: "(n, d_1, ..., d_K) input tensor",
-    betas: "L1 penalties for Psis",
+    *,
+    betas: ("L1 penalties for Psis", "Hyperparameter") = None,
     B_approx_iters: (int, "Hyperparameter") = 10,
+    sparsities: ("List of numbers of edges to keep for Psis", "Hyperparameter") = None
 ):
     """
     See `calculateEigenvalues` for explanation of
     `B_approx_iters`.
     """
+    
+    if betas is None and sparsities is None:
+        raise ValueError("betas and sparsities cannot both be None")
+    if betas is not None and sparsities is not None:
+        raise ValueError(
+            "Must choose to regularize using either betas or sparsities, not both"
+        )
+    
     (n, *d) = Ys.shape
     K = len(d)
         
     Ss = [nmode_gram(Ys, ell) for ell in range(K)]
     Vs = eigenvectors_MLE(Ss)
     vs = eigenvalues_MLE(Ys, Vs, B_approx_iters)
-    Psis = shrink(
-        (V @ np.diag(v) @ V.T for V, v in zip(Vs, vs)),
-        betas
-    )
+    Psis = (V @ np.diag(v) @ V.T for V, v in zip(Vs, vs))
+    
+    if betas is not None:
+        Psis = shrink(Psis, betas)
+    if sparsities is not None:
+        Psis = shrink_sparsities(Psis, sparsities)
     
     return Psis
 
@@ -155,6 +167,18 @@ def shrink(
             Psi[r, :r] = row[:r]
             Psi[r, r+1:] = row[r:]
             Psi[:, r] = Psi[r, :]
+        out.append(Psi)
+    return out
+
+def shrink_sparsities(
+    Psis: "List of matrices to shrink",
+    sparsities: "List assumed sparsities"
+) -> "List of sparsity-shrunk Psis":
+    out = []
+    for Psi, s in zip(Psis, sparsities):
+        Psabs = np.abs(Psi)
+        quant = np.quantile(Psabs, 1-s)
+        Psi = Psi[Psabs >= quant]
         out.append(Psi)
     return out
 
