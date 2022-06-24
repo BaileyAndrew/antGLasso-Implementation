@@ -15,6 +15,7 @@ from Scripts.anBiGLasso_cov import anBiGLasso as anBiGLasso_cov
 from Scripts.antGLasso import antGLasso
 from Scripts.nonparanormal_skeptic import *
 from cycler import cycler
+from itertools import product
 
 def get_cms_for_betas(
     betas_to_try: "List of L1 penalties to try",
@@ -503,6 +504,97 @@ def make_cm_plots_tensor(
                 precisions[name] = [precision(cm) for cm in confmats[idx_alg, ...]]
                 recalls[name] = [recall(cm) for cm in confmats[idx_alg, ...]]
                 ax.plot(recalls[name], precisions[name], label=alg)
+                ax.set_xlabel("Recall")
+                ax.set_ylabel("Precision")
+                ax.set_title(name)
+                ax.set_xlim([0, 1])
+                ax.set_ylim([0, 1])
+                ax.legend()
+        if title is not None:
+            fig.suptitle(title, fontsize=16)
+        return fig, axs
+    
+def kwargs_generator(sizes, samples, df_scale=2):
+    yield from ({
+        'm': m,
+        'ds': ds,
+        'expected_nonzero': ds[0]**2 / 5,
+        'df_scale': df_scale
+    }
+        for ds, m in product(sizes, samples)
+    )
+    
+def get_cms_for_betas_antGLasso(
+    betas_to_try: "List of L1 penalties to try",
+    attempts: "Amount of times we run the experiment to average over",
+    cm_mode: "`mode` argument for `generate_confusion_matrices`",
+    sizes: "List of problem sizes to try",
+    samples: "List of problem samples to try",
+    verbose: bool = False,
+    df_scale: int = 2
+) -> (
+    "List of all average confusion matrices for Psi",
+    "List of all average confusion matrices for Theta",
+):
+    """
+    We want to be able to make ROC curves parameterized by
+    the L1 penalty.  This function will return confusion matrices
+    to aid in that endeavor.
+    
+    We enforce beta_1 = beta_2.
+    """
+
+    Psis_cms = np.zeros((*betas_to_try.shape, 2, 2, 2))
+    for idx_alg, kwargs_gen in enumerate(kwargs_generator(sizes, samples, df_scale)):
+        for idx_b, b in enumerate(betas_to_try[idx_alg]):
+            if verbose:
+                print(f"\tTrying beta={b:.6f}")
+            for attempt in range(attempts):
+                Psis_gen, Ys = generate_Ys(**kwargs_gen)
+                Psis = antGLasso(
+                    Ys=Ys,
+                    betas=[b, b],
+                    B_approx_iters=10
+                )
+                Psis_cms[idx_alg, idx_b, ...] += np.array([generate_confusion_matrices(
+                    Psis[idx],
+                    Psis_gen[idx],
+                    mode=cm_mode
+                ) for idx in range(2)]) / attempts
+                # End of attempts loop
+            # End of betas loop
+        # End of algorithms loop
+    return Psis_cms
+
+def make_cm_plots_antGLasso(
+    Psis_cms: "List of corresponding confusion matrices for each Psi",
+    sizes: "List of problem sizes to try",
+    samples: "List of problem samples to try",
+    title = None
+) -> ("Matplotlib Figure", "Tuple of Axes"):
+    D = Psis_cms.shape[2]
+    with plt.style.context('Solarize_Light2'):
+        plt.rcParams['axes.prop_cycle'] = cycler(color=[
+            '#006BA4',
+            '#FF800E',
+            '#ABABAB',
+            '#595959',
+            '#5F9ED1',
+            '#C85200',
+            '#898989',
+            '#A2C8EC',
+            '#FFBC79',
+            '#CFCFCF'
+        ])
+        fig, axs = plt.subplots(figsize=(8, 8*D), nrows=D)
+        for idx, (confmats, ax) in enumerate(zip(np.rollaxis(Psis_cms, 2), axs)):
+            name = f"Psi{idx}"
+            precisions = dict({})
+            recalls = dict({})
+            for idx_alg, (size, sample) in enumerate(product(sizes, samples)):
+                precisions[name] = [precision(cm) for cm in confmats[idx_alg, ...]]
+                recalls[name] = [recall(cm) for cm in confmats[idx_alg, ...]]
+                ax.plot(recalls[name], precisions[name], label=f"{size=} {sample=}")
                 ax.set_xlabel("Recall")
                 ax.set_ylabel("Precision")
                 ax.set_title(name)
