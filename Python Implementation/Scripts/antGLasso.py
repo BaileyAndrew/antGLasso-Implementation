@@ -177,8 +177,9 @@ def shrink_sparsities(
     out = []
     for Psi, s in zip(Psis, sparsities):
         Psabs = np.abs(Psi)
+        np.fill_diagonal(Psabs, 0)
         quant = np.quantile(Psabs, 1-s)
-        Psi = Psi[Psabs >= quant]
+        Psi[Psabs < quant] = 0
         out.append(Psi)
     return out
 

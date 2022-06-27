@@ -518,7 +518,7 @@ def kwargs_generator(sizes, samples, df_scale=2):
     yield from ({
         'm': m,
         'ds': ds,
-        'expected_nonzero': ds[0]**2 / 5,
+        'expected_nonzero': int(ds[0]**2 * 0.2),
         'df_scale': df_scale
     }
         for ds, m in product(sizes, samples)
@@ -531,7 +531,8 @@ def get_cms_for_betas_antGLasso(
     sizes: "List of problem sizes to try",
     samples: "List of problem samples to try",
     verbose: bool = False,
-    df_scale: int = 2
+    df_scale: int = 2,
+    try_sparsities: bool = False
 ) -> (
     "List of all average confusion matrices for Psi",
     "List of all average confusion matrices for Theta",
@@ -551,10 +552,11 @@ def get_cms_for_betas_antGLasso(
                 print(f"\tTrying beta={b:.6f}")
             for attempt in range(attempts):
                 Psis_gen, Ys = generate_Ys(**kwargs_gen)
+                regularizer = {'betas': [b, b]} if not try_sparsities else {'sparsities': [b, b]}
                 Psis = antGLasso(
                     Ys=Ys,
-                    betas=[b, b],
-                    B_approx_iters=10
+                    B_approx_iters=10,
+                    **regularizer
                 )
                 Psis_cms[idx_alg, idx_b, ...] += np.array([generate_confusion_matrices(
                     Psis[idx],
@@ -570,7 +572,9 @@ def make_cm_plots_antGLasso(
     Psis_cms: "List of corresponding confusion matrices for each Psi",
     sizes: "List of problem sizes to try",
     samples: "List of problem samples to try",
-    title = None
+    title = None,
+    betas_to_highlight: "List of *indices* of beta values to highlight on graph" = None,
+    betas = None
 ) -> ("Matplotlib Figure", "Tuple of Axes"):
     D = Psis_cms.shape[2]
     with plt.style.context('Solarize_Light2'):
@@ -601,6 +605,18 @@ def make_cm_plots_antGLasso(
                 ax.set_xlim([0, 1])
                 ax.set_ylim([0, 1])
                 ax.legend()
+                if betas_to_highlight is not None:
+                    for beta_to_highlight in betas_to_highlight[idx_alg]:
+                        bval = betas[idx_alg, beta_to_highlight]
+                        cmval = confmats[idx_alg, beta_to_highlight]
+                        _precision = precision(cmval)
+                        _recall = recall(cmval)
+                        ax.annotate(
+                            f'keep top {100*bval:.0f}%',
+                            xy=(_recall, _precision),
+                            xytext=(_recall-0.1, _precision-0.1),
+                            arrowprops=dict(facecolor='black', shrink=0.05)
+                        )
         if title is not None:
             fig.suptitle(title, fontsize=16)
         return fig, axs

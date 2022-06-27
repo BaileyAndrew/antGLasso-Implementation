@@ -188,7 +188,7 @@ def F1_score(
 
 def binarize_matrix(
     M: "Input matrix of any dimensions",
-    eps: "Tolerance" = 0.001,
+    eps: "Tolerance" = 0.0000001,
     mode: "Negative | <Tolerance" = '<Tolerance'
 ):
     """
@@ -228,6 +228,9 @@ def generate_confusion_matrices(
     
     # Identity matrices to remove diagonals
     In = np.eye(pred.shape[0])
+    
+    np.fill_diagonal(pred, 1)
+    np.fill_diagonal(truth, 1)
     
     TP: "True positives"
     TP = (pred * truth - In).sum()
