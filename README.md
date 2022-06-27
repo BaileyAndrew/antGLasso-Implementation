@@ -37,29 +37,28 @@ precision-recall plots in the `Plots` folder.
 
 ## Other BiGraphical Lasso Algorithms
 
-We have a custom implementation of scBiGLasso (this project initially started
-out as just a Python implementation of that algorithm before the trick to
-remove iterativeness was discovered).  We also have added EiGLasso as a git submodule,
-the main repository for that is at https://github.com/SeyoungKimLab/EiGLasso.  To
-compare against EiGLasso (which is implemented in C++), we interface through Matlab
+We have a custom implementation of scBiGLasso (one of the dependencies of scBiGLasso
+is not compileable on a Mac since Matlab dropped support for all free Fortran compilers).
+We also have added EiGLasso and TeraLasso a git submodules,
+the main repositories are at https://github.com/SeyoungKimLab/EiGLasso and https://github.com/kgreenewald/teralasso.
+To compare against EiGLasso (which is implemented in C++), we interface through Matlab
 following the instructions of the authors of EiGLasso.  This could add some overhead,
-but since the other algorithms are implemented in Python (a language not known for speed)
+but since antGLasso implemented in Python (a language not known for speed)
 we are hopeful that this does not substantially affect the analysis.
-We use the out-of-the-box hyperparameters of EiGLasso.
+We use the out-of-the-box hyperparameters for all algorithms.
 
 ## Practical Performance
 
 ### Summary
 
 Based on the results of my experiments, I would recommend EiGLasso when speed is not an issue,
-and anBiGLasso if speed becomes an issue.  anBiGLasso can handle a 1600x1600 dataset in
+and antGLasso if speed becomes an issue.  anBiGLasso can handle a 1600x1600 dataset in
 less than a minute, whereas EiGLasso can only handle a 300x300 dataset in the same timeframe.
-However, EiGLasso, especially on small samples, is more accurate than anBiGLasso.  The difference
-in accuracy is not so much on large samples.
+However, EiGLasso, especially on small samples, is more accurate than anBiGLasso.
 
 ### Runtimes
 
-scBiGLasso and EiGLasso are iterative algorithms, which means their speed can
+scBiGLasso, EiGLasso, and TeraLasso are iterative algorithms, which means their speed can
 vary substantially depending on how fast they converge.  Empirically I've noticed
 that you will get quick convergence (and good precision/recall) if your
 precision matrices are drawn from the Inverse Wishart Distribution with degrees
@@ -74,49 +73,25 @@ but the trend should be clear.
 
 ### Results on Simulated Data (Large Sample)
 
-You get roughly the same precision-recall curves regardless of the size of the input
-data (but the best L1 penalties will be different) for anBiGLasso.  We can see that anBiGLasso gets
-roughly the same results as scBiGLasso, but EiGLasso is superior.
-
 We just show the performance on 'easy' data, as the 'hard' data results had much more variance.  However,
 the `Plots` folder does contain analagous hard-data plots. 
 
-#### anBiGLasso Results
+![Large Sample Results](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Final/PR%20100%20of%2050x50.png)
 
-![anBiGLasso Results](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Vary%20Sizes%20-%20anBiGLasso%20-%20Easy%20-%20Approx/Precision-Recall-Vary-Sizes-100.png)
-
-#### scBiGLasso Results
-
-![scBiGLasso Results](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Vary%20Sizes%20-%20scBiGLasso%20-%20Easy/Precision-Recall-Vary-Sizes-100.png)
-
-#### EiGLasso Results
-
-![EiGLasso Results](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Vary%20Sizes%20-%20EiGLasso%20-%20Easy/Precision-Recall-Vary-Sizes-100.png)
 
 ### Results on Simulated Data (Small Sample)
 
-Here we just compare anBiGLasso and EiGLasso as scBiGLasso takes a long time to run on small samples.
 
-#### anBiGLasso Results
+![Small Sample Results](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Final/PR%2010%20of%2050x50.png)
 
-![anBiGLasso Results](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Vary%20Samples%20-%20anBiGLasso%20-%20Easy%20-%20Approx/Precision-Recall-Vary-Samples-5.png)
+### Results on Tensor Data
 
-![anBiGLasso Results](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Vary%20Samples%20-%20anBiGLasso%20-%20Easy%20-%20Approx/Precision-Recall-Vary-Samples-10.png)
+![Small Sample Results](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Final/PR%20100%20of%2050x50x50.png)
 
-As we can see, anBiGLasso does terribly for small samples.  It needs about 10 samples before it starts being comparable to EiGLasso again.
-Of course, EiGLasso also does terribly, but not nearly as terribly.  This is the greatest flaw of anBiGLasso - its weakness on small samples.
-
-We will see that despite this apparent flaw, on real data it can still produce useful results on small samples (m=1)
-
-#### EiGLasso Results
-
-![EiGLasso Results](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Vary%20Samples%20-%20EiGLasso%20-%20Easy/Precision-Recall-Vary-Samples-5.png)
-
-![anBiGLasso Results](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Vary%20Samples%20-%20EiGLasso%20-%20Easy/Precision-Recall-Vary-Samples-10.png)
-
-EiGLasso is overall an excellent algorithm, and perhaps its greatest strength in comparison to anBiGLasso is its small-sample performance.
 
 ## Performance on Real Data
+
+_This section is under construction and subject to change - the previous section is very stable so you can trust it_
 
 We investigate performance on two datasets - the 'Duck Dataset', using the same experiment as described in the original BiGLasso paper,
 and the 'Mouse Dataset', using the same experiment as described in the scBiGLasso paper.
