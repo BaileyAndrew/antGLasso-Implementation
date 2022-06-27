@@ -23,7 +23,7 @@ conda install line_profiler
 If you want to compare results to EiGLasso, follow the instructions on their GitHub page for how to install the correct version of MKL and how to compile.  We only use their matlab interface, so the
 instructions for compiling that are the most essential.
 
-# Analytic BiGraphical Lasso
+# Analytic Tensor Graphical Lasso (antGLasso)
 
 This is a non-iterative algorithm for estimating the two constituent
 precision matrices of matrix data (within-row and within-column precisions).
@@ -32,10 +32,10 @@ There are two variants of the algorithm - one with optimal space complexity
 (whose performance is dependent on a hyperparameter `b` controlling the goodness
 of the approximation, here we set `b=10`) and one with poor space complexity
 but slightly better performance.  The latter one is called 'Hungry anBiGLasso'.
-For brevity, this ReadMe won't cover Hungry anBiGLasso, but the repo does contain
+For brevity, this ReadMe won't cover Hungry antGLasso, but the repo does contain
 precision-recall plots in the `Plots` folder.
 
-## Other BiGraphical Lasso Algorithms
+## Other BiGraphical and Tensor-Graphical Lasso Algorithms
 
 We have a custom implementation of scBiGLasso (one of the dependencies of scBiGLasso
 is not compileable on a Mac since Matlab dropped support for all free Fortran compilers).
