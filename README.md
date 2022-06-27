@@ -71,23 +71,37 @@ results.  We look at both of these cases.
 For large sample data, due to memory usage concerns we only tested up to 500x500 inputs rather than 5000x5000,
 but the trend should be clear.
 
-### Results on Simulated Data (Large Sample)
+### Results on Simulated Data (Large Sample: 100 samples of 50x50)
 
 We just show the performance on 'easy' data, as the 'hard' data results had much more variance.  However,
 the `Plots` folder does contain analagous hard-data plots. 
 
 ![Large Sample Results](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Final/PR%20100%20of%2050x50.png)
 
+We can see that antGLasso does worse than the others, but still respectably.  It is the same story in all cases we consider.
 
-### Results on Simulated Data (Small Sample)
+### Results on Simulated Data (Small Sample: 10 samples of 50x50)
 
 
 ![Small Sample Results](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Final/PR%2010%20of%2050x50.png)
 
-### Results on Tensor Data
+### Results on Tensor Data (100 samples of 50x50x50)
 
-![Small Sample Results](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Final/PR%20100%20of%2050x50x50.png)
+Here we only compare to TeraLasso as it is the only one that can handle tensor-variate data.
 
+![Tensor Results](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Final/PR%20100%20of%2050x50x50.png)
+
+### Performance as Input Size Varies
+
+![Size Results](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Final/PR%20antGLasso%20vary%20sizes.png)
+
+We can see that, as the size of the problem gets bigger, antGLasso's performance improves.
+
+### Peformance as Number of Samples Varies
+
+![Samples Results](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Final/PR%20antGLasso%20vary%20samples.png)
+
+As expected, more samples lead to better performance.
 
 ## Performance on Real Data
 
