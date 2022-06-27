@@ -103,6 +103,15 @@ We can see that, as the size of the problem gets bigger, antGLasso's performance
 
 As expected, more samples lead to better performance.
 
+### Effect of Regularization
+
+For this algorithm, L1 Penalties correspond to thresholds above which we preserve edges. 
+
+![Regularization Results](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Final/PR%20antGLasso%20sparsity-based%20regularization.png)
+
+This test was done on data with 20% sparsity.  We can see that, when we set the threshold to preserve 20% of the edges, we get
+a balance of precision and recall (~60% for both).
+
 ## Performance on Real Data
 
 _This section is under construction and subject to change - the previous section is very stable so you can trust it_
