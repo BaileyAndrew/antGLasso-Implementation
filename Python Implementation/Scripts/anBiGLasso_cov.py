@@ -50,7 +50,7 @@ def eigenvalues_MLE(
     U: "(n, n) eigenvectors of Psi",
     V: "(p, p) eigenvectors of Theta",
     B_approx_iters: int,
-    eval_iters = 1
+    eval_iters = 10
 ):
     """
     An implementation of Theorem 3

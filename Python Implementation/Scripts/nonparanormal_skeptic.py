@@ -17,3 +17,20 @@ def nonparanormal_skeptic(
     np.fill_diagonal(T, 1)
     np.fill_diagonal(S, 1)
     return T, S
+
+def nonparanormal_tensor_skeptic(
+    Ys: "(m, *ds)"
+):
+    m, *ds = Ys.shape
+    Ss = [np.empty((m, p:=np.prod(ds)//d, p)) for d in ds]
+    
+    for idx, d in enumerate(ds):
+        dim = idx+1
+        Ys_dim = np.moveaxis(Ys, dim, -1)
+        for batch in range(m):
+            Ss[idx][batch] = 2 * np.sin(np.pi / 6 * spearmanr(
+                Ys_dim[batch].reshape(-1, d), axis=1
+            )[0])
+        Ss[idx] = Ss[idx].mean(axis=0)
+        np.fill_diagonal(Ss[idx], 1)
+    return Ss
