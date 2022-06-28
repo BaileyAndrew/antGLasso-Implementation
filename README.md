@@ -128,8 +128,40 @@ and the 'Mouse Dataset', using the same experiment as described in the scBiGLass
 
 ### Summary
 
-Real data often comes in a single sample.  For simpler problems like COIL, this does not pose an issue.  However, the drawbacks of this
-method do become apparent when we look at a more complicated single-sample dataset.
+Real data often comes in a single sample.  _Under construction_
+
+### Mouse Dataset
+
+This dataset has three cell types: S, G1, and G2M.  We would expect that the precision matrix has blocks around the diagonal
+indicating each of these cell types.
+
+#### antGLasso
+
+![Mouse antGLasso](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Final/antGLasso%20Mouse%20Performance%20Direct%20Fit.png)
+
+antGLasso may have learned some information about this problem, but not much - it seems to put S and G2M cells together, and does
+not recognize the G1 cluster.  This is unfortunate but not unexpected given the performance of the algorithm on small sample data.
+
+
+#### EiGLasso
+
+We can then compare antGLasso's performance against EiGLasso - if they give similar results, this serves as partial validation of antGLasso.
+
+![Mouse EiGLasso](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Final/EiGLasso%20Mouse%20Performance%202.png)
+
+This does similarly to antGLasso, although the clusters are more refined (there's less 'bleed' into what should be the G1 cluster).  With different regularization penalties, we can achieve this:
+
+![Mouse EiGLasso](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Final/EiGLasso%20Mouse%20Performance%201.png)
+
+Where it seems to have identified the block-diagonal structure except for the S group strongly interacting with the others.
+
+#### antGLasso Animation
+
+antGLasso separates the estimation and regularization steps, unlike other algorithms.  This can be a disadvantage, as it will
+not benefit from task transfer.  However, the silver lining is that it allows us to easily see how our results change with different
+penalties, as the regularization step is very cheap.
+
+![Mouse antGLasso](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Final/antGLasso%20Mouse.gif)
 
 ### COIL Dataset
 
@@ -152,40 +184,6 @@ Given a machine
 with sufficient memory, extrapolating the cubic time complexity implies it would take $20 \times 4^3$ seconds, or 21 minutes to run.
 This is a very reasonable runtime, indicating that the limits of this algorithm are bounded by memory not speed.  Since the space
 complexity of anBiGLasso is optimal, this is a fundamental limit of the BiGraphical Lasso problem itself rather than our algorithm.
-
-### Mouse Dataset
-
-This dataset has three cell types: S, G1, and G2M.  We would expect that the precision matrix has blocks around the diagonal
-indicating each of these cell types.
-
-#### anBiGLasso
-
-![Mouse anBiGLasso](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Mouse/anBiGLasso%20Performance.png)
-
-anBiGLasso may have learned some information about this problem, but not much - it seems to put S and G2M cells together, and does
-not recognize the G1 cluster.  This is unfortunate but not unexpected given the performance of the algorithm on small sample data.
-
-To try to get around the small sample issue, we can try augmenting our data.  To do this, we calculate the library sizes of the data
-(the total amount of counts per cell), and then generate copies of the data with a random portion of the library size added to each
-gene per cell.  We created 50 copies like this.  The hope is that this teaches the model something about the underlying true count
-distribution - thus, even if the augmented data comes from a single sample, it can act as a slightly larger sample size.
-
-![Mouse anBiGLasso](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Mouse/anBiGLasso%20Performance%20Augmented.png)
-
-This looks a lot better!  It still doesn't learn the G1 cluster, and S and G2M are still together, but the cluster it does find is
-much clearer.  The small sample limitation of this algorithm can be at least partially overcome by data augmentation.  Our method
-of augmentation was rather simple, but perhaps other methods might be able to teach the model more about the underlying structure
-of the data.
-
-#### EiGLasso
-
-![Mouse EiGLasso](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Mouse/EiGLasso%20Performance.png)
-
-This seems to be do better than anBiGLasso - it successfully identifies all three clusters, although there seem to be strong connections
-between the S cluster and the others (I do not know if this is biologically plausible or not).
-
-If we increase regularization slightly, then the G1 cluster disappears before the cross-cluster connections,
-so we should not be too hard on anBiGLasso for not learning it - it seems that this cluster is easy to destroy.
 
 ## Asymptotic Performance
 
