@@ -15,7 +15,7 @@ def nonparanormal(
     But we don't use it anywhere
     """
     
-    m, n, p = Ys.shape
+    m, *ds = Ys.shape
     
     # In the paper, they have n samples and p datapoints per sample
     # whereas we have m samples and ell=n*p datapoints per sample
