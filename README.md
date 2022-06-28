@@ -71,6 +71,13 @@ results.  We look at both of these cases.
 For large sample data, due to memory usage concerns we only tested up to 500x500 inputs rather than 5000x5000,
 but the trend should be clear.
 
+![All Together Tensors](Plots/Runtimes%20Comparison/All%20Together%20Tensors.png)
+
+For 3D tensors, antGLasso is still the fastest, but TeraLasso closes the gap somewhat.  This is because
+the expense of creating the empirical covariance matrices starts to become dominant as the number
+of tensor dimensions increases.  As both TeraLasso and antGLasso create these matrices, the speedup
+of antGLasso starts to matter less and less.
+
 ### Results on Simulated Data (Large Sample: 100 samples of 50x50)
 
 We just show the performance on 'easy' data, as the 'hard' data results had much more variance.  However,
