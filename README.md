@@ -130,17 +130,25 @@ and the 'Mouse Dataset', using the same experiment as described in the scBiGLass
 
 Real data often comes in a single sample.  _Under construction_
 
+To achieve these results, we occasionally increased the `b` parameter to 1000 (instead of 10).  This did not noticeably increase
+runtime.  It seems on real world data there is more variance in the outputs of the algorithm, but large `b` will average these
+differences out.
+
 ### Mouse Dataset
 
 This dataset has three cell types: S, G1, and G2M.  We would expect that the precision matrix has blocks around the diagonal
 indicating each of these cell types.
 
+This data follows a count distribution, not a normal distribution, so we take the the log of our data (plus 1 to remove zeros) to
+roughly map it to a normal.
+
 #### antGLasso
 
 ![Mouse antGLasso](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Final/antGLasso%20Mouse%20Performance%20Direct%20Fit.png)
 
-antGLasso may have learned some information about this problem, but not much - it seems to put S and G2M cells together, and does
-not recognize the G1 cluster.  This is unfortunate but not unexpected given the performance of the algorithm on small sample data.
+antGLasso may have learned some information about this problem (it identifies S and G2M block diagonals), but not much
+- it seems to put S and G2M cells together, and does not recognize the G1 cluster.
+This is unfortunate but not unexpected given the performance of the algorithm on small sample data.
 
 
 #### EiGLasso
@@ -166,13 +174,21 @@ penalties, as the regularization step is very cheap.
 ### COIL Dataset
 
 We would expect each frame to be conditionally dependent on nearby frames, manifesting in a precision matrix that hugs the diagonal.
-We might also expect the upper right and lower left corners to be nonzero, as the video is of a duck rotating around 360°.
+We might also expect the upper right and lower left corners to be nonzero, as the video is of a duck rotating around 360°.  We also
+might expect there to be a repeating structure every 64 pixels in the pixel dependencies, as that is the size of a row of pixels.
 
-The results align well with our expectations.
+The results align well with our expectations.  However, we could not use the traditional antGLasso algorithm on it.  Unlike the
+mouse embryo case, the data follows a zero-inflated binomial distribution.  (Well, it's more of a 'pixel-values-less-than-ten-are-inflated'
+binomial distribution), due to the background of the image being dark and nondescript.  This is harder to map to a Gaussian (one
+reason is that it has two peaks).  We weren't able to get good results using a handmade transformation, so we instead used a heuristic
+for the eigenvalues of the precision matrix.  This heuristic antGLasso can accept empirical covariance matrices as input, allowing
+us to apply the nonparanormal skeptic.
 
-#### anBiGLasso
+In the performance graphs from the previous section, the heuristic is called `anBiGLasso_cov` _(I'll change name later)_.  Its precision
+recall curves are comparable to EiGLasso's, except that it has an upper bound on the recall, that gets lower as the problem size
+increases.  This is because of the way the heuristic works, unfortunately.  So it's not an ideal solution.
 
-![Duck](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Duck/anBiGLasso%20Performance.png)
+![Duck](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Final/antGLasso%20Duck%20Heuristic.png)
 
 Note: in the original BiGraphical Lasso paper, they shrunk the 128x128 pixel frames to 9x9.  We use 64x64, which takes about 20
 seconds (as our input data is of size (70, 4096)).  Smaller cases, such as 32x32, take neglibigle runtime.  We wanted to consider
@@ -185,17 +201,6 @@ with sufficient memory, extrapolating the cubic time complexity implies it would
 This is a very reasonable runtime, indicating that the limits of this algorithm are bounded by memory not speed.  Since the space
 complexity of anBiGLasso is optimal, this is a fundamental limit of the BiGraphical Lasso problem itself rather than our algorithm.
 
-## Asymptotic Performance
-
-The hungry implementation of anBiGLasso has the unideal space complexity $O(mnp + n^2p + p^2n)$,
-but the non-hungry version has a space complexity of $O(mnp + n^2 + p^2)$
-(the size of the inputs plus the outputs).  If we consider this as a function of the empirical covariance
-matrices rather than a matrix-variate dataset, space complexity is $O(n^2 + p^2)$.
-
-Time complexity is $O(mn^2p + mnp^2 + b(n^3 + p^3 + n^2p + p^2n))$.  In practice $b$ is constant (`b=10`),
-it does not need to be increased for larger data.  This gives the complexity $O(mn^2p + mnp^2 + n^3 + p^3)$.
-The $mn^2p + mnp^2$ term comes form the computation of the empirical covariance matrices - if we consider
-them to be the input of the algorithm, then the time complexity is $O(n^3 + p^3 + n^2p + np^2)$.
 
 ## Data
 
