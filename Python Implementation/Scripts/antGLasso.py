@@ -21,8 +21,8 @@ def antGLasso(
             "Must choose to regularize using either betas or sparsities, not both"
         )
     
-    (n, *d) = Ys.shape
-    K = len(d)
+    (n, *ds) = Ys.shape
+    K = len(ds)
         
     Ss = [nmode_gram(Ys, ell) for ell in range(K)]
     Vs = eigenvectors_MLE(Ss)
@@ -35,6 +35,51 @@ def antGLasso(
         Psis = shrink_sparsities(Psis, sparsities)
     
     return Psis
+
+def antGLasso_heuristic(
+    Ss: "List of empirical covariance matrices",
+    *,
+    betas: ("L1 penalties for Psis", "Hyperparameter") = None,
+    B_approx_iters: (int, "Hyperparameter") = 10,
+    sparsities: ("List of numbers of edges to keep for Psis", "Hyperparameter") = None
+):
+    """
+    See `calculateEigenvalues` for explanation of
+    `B_approx_iters`.
+    """
+    
+    if betas is None and sparsities is None:
+        raise ValueError("betas and sparsities cannot both be None")
+    if betas is not None and sparsities is not None:
+        raise ValueError(
+            "Must choose to regularize using either betas or sparsities, not both"
+        )
+        
+    Vs = eigenvectors_MLE(Ss)
+    vs = eigenvalues_heuristic(Ss, Vs, B_approx_iters)
+    Psis = (V @ np.diag(v) @ V.T for V, v in zip(Vs, vs))
+    
+    if betas is not None:
+        Psis = shrink(Psis, betas)
+    if sparsities is not None:
+        Psis = shrink_sparsities(Psis, sparsities)
+    
+    return Psis
+
+def eigenvalues_heuristic(Ss, Vs, B_approx_iters):
+    vs = [None for _ in Vs]
+    ds = [S.shape[0] for S in Ss]
+    for idx, S in enumerate(Ss):
+        V = Vs[idx]
+        ds_slash_d = [d for i, d in enumerate(ds) if i != idx]
+        d = ds[idx]
+        Sigmas = d * np.diag(V.T @ S @ V)
+        Sigmas = np.tile(
+            Sigmas.reshape(d, *[1 for _ in ds_slash_d]),
+            (1, *ds_slash_d)
+        )
+        vs[idx], *_ = calculateEigenvalues(Sigmas, B_approx_iters)
+    return vs
 
 def eigenvectors_MLE(Ss):
     mk = 1
