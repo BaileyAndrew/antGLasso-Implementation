@@ -191,7 +191,7 @@ increases.  This is because of the way the heuristic works, unfortunately.  So i
 ![Duck](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Final/antGLasso%20Duck%20Heuristic.png)
 
 Note: in the original BiGraphical Lasso paper, they shrunk the 128x128 pixel frames to 9x9.  We use 64x64, which takes about 20
-seconds (as our input data is of size (70, 4096)).  Smaller cases, such as 32x32, take neglibigle runtime.  We wanted to consider
+seconds (as our input data is of size (72, 4096)).  Smaller cases, such as 32x32, take neglibigle runtime.  We wanted to consider
 the full 128x128 case, but the memory requirements would be prohibitive on my machine (it would require 2 gigabytes of input,
 2 gigabytes of output, and then some intermediate matrices also of size 2 gigabytes each that could possibly be optimized away with
 some effort).
@@ -200,6 +200,17 @@ Given a machine
 with sufficient memory, extrapolating the cubic time complexity implies it would take $20 \times 4^3$ seconds, or 21 minutes to run.
 This is a very reasonable runtime, indicating that the limits of this algorithm are bounded by memory not speed.  Since the space
 complexity of anBiGLasso is optimal, this is a fundamental limit of the BiGraphical Lasso problem itself rather than our algorithm.
+
+However, in the case of the COIL data there is a way around this!  The natural structure of the data is a 3D tensor of frames, rows
+and columns.  The input data is then of size (72, 128, 128), and the outputs are (72, 72), (128, 128), (128, 128).  These outputs require
+less than a megabyte of space!  We would expect a near-diagonal structure for all of these dimensions, which is exactly what we see
+when we use the heuristic!
+
+![Duck](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Final/antGLasso%20Duck%20Tensor%20Performance.png)
+
+As before, we can view the strengths of the connections as a gif:
+
+![Duck](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Final/antGLasso%20COIL.gif)
 
 
 ## Data
