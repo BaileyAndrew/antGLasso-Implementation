@@ -204,7 +204,8 @@ complexity of anBiGLasso is optimal, this is a fundamental limit of the BiGraphi
 However, in the case of the COIL data there is a way around this!  The natural structure of the data is a 3D tensor of frames, rows
 and columns.  The input data is then of size (72, 128, 128), and the outputs are (72, 72), (128, 128), (128, 128).  These outputs require
 less than a megabyte of space!  We would expect a near-diagonal structure for all of these dimensions, which is exactly what we see
-when we use the heuristic!
+when we use the heuristic!  One obvious deficiency is that it does not do a great job of recognizing that the 360° nature of the video
+means that there should be connections between the first and last frames as well.
 
 ![Duck](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Final/antGLasso%20Duck%20Tensor%20Performance.png)
 
