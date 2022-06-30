@@ -514,11 +514,11 @@ def make_cm_plots_tensor(
             fig.suptitle(title, fontsize=16)
         return fig, axs
     
-def kwargs_generator(sizes, samples, df_scale=2):
+def kwargs_generator(sizes, samples, df_scale=2, sparsity=0.2):
     yield from ({
         'm': m,
         'ds': ds,
-        'expected_nonzero': int(ds[0]**2 * 0.2),
+        'expected_nonzero': int(ds[0]**2 * sparsity),
         'df_scale': df_scale
     }
         for ds, m in product(sizes, samples)
@@ -532,7 +532,8 @@ def get_cms_for_betas_antGLasso(
     samples: "List of problem samples to try",
     verbose: bool = False,
     df_scale: int = 2,
-    try_sparsities: bool = False
+    try_sparsities: bool = False,
+    sparsity: "0 <= x <= 1" = 0.2
 ) -> (
     "List of all average confusion matrices for Psi",
     "List of all average confusion matrices for Theta",
@@ -546,7 +547,7 @@ def get_cms_for_betas_antGLasso(
     """
 
     Psis_cms = np.zeros((*betas_to_try.shape, 2, 2, 2))
-    for idx_alg, kwargs_gen in enumerate(kwargs_generator(sizes, samples, df_scale)):
+    for idx_alg, kwargs_gen in enumerate(kwargs_generator(sizes, samples, df_scale, sparsity)):
         for idx_b, b in enumerate(betas_to_try[idx_alg]):
             if verbose:
                 print(f"\tTrying beta={b:.6f}")
