@@ -1,6 +1,8 @@
 import numpy as np
 from Scripts.utilities import K, LASSO
 
+import scipy.sparse as sparse
+
 def anBiGLasso(
     Ys: "(m, n, p) input tensor",
     beta_1: "L1 penalty for Psi",
@@ -172,11 +174,20 @@ def calculateEigenvalues(
         # but the version of SciPy I'm using (1.7.3) does
         # not have good tools for it - 1.8 does, but pandas
         # breaks when I use 1.8 at the moment.
-        B_inv = np.eye(n + p, n + p)
-        B_inv[n-1:-2, -2] = -1
-        B_inv[:n, -1] = -1
-        B_inv[n-1:-2, -1] = 1
-        B_inv[-2, -1] = -1
+        #B_inv = np.eye(n + p, n + p)
+        #B_inv[n-1:-2, -2] = -1
+        #B_inv[:n, -1] = -1
+        #B_inv[n-1:-2, -1] = 1
+        #B_inv[-2, -1] = -1
+ 
+        # Use sparse matrices
+        # Note: this will need * for matmul instead of @
+        B_csr = sparse.eye(n+p, n+p, format='lil')
+        B_csr[n-1:-2, -2] = -1
+        B_csr[:n, -1] = -1
+        B_csr[n-1:-2, -1] = 1
+        B_csr[-2, -1] = -1
+        B_csr = sparse.csr_matrix(B_csr)
         
         #print(B_inv)
         
@@ -186,8 +197,6 @@ def calculateEigenvalues(
             # and the jth eigenvalue of Theta
             j = np.random.randint(0, n)
             i = np.random.randint(0, p)
-            #i = 1
-            #j = 2
                 
             # ignore what came before
             # We can work out that the duplicate row occurs
@@ -211,9 +220,11 @@ def calculateEigenvalues(
             a_2[:n+p-1] = a_
             a_2[-1] = (Ls[i+n-1] / it) if it > 0 else 1
             
-            # Tried scipy.linalg.blas.dtrmv(B_inv, a_2)
-            # but actually it ran much slower!
-            out = B_inv @ a_2
+            # The version of scipy this was written in only has good
+            # support for sparse "matrices", not "arrays" - what
+            # this means for the reader is that '*' corresponds to
+            # '@' here.  It is matrix multiplication, not elementwise.
+            out = B_csr * a_2
             
             # Move last two cols back to i, j positions
             out[i+n-1:] = np.roll(out[i+n-1:], 1)

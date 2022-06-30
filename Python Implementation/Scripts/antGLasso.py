@@ -67,17 +67,27 @@ def antGLasso_heuristic(
     return Psis
 
 def eigenvalues_heuristic(Ss, Vs, B_approx_iters):
-    vs = [None for _ in Vs]
     ds = [S.shape[0] for S in Ss]
+    vs = [np.zeros(d) for d in ds]
     for idx, S in enumerate(Ss):
         V = Vs[idx]
-        ds_slash_d = [d for i, d in enumerate(ds) if i != idx]
         d = ds[idx]
+        ds_slash_d = [d for i, d in enumerate(ds) if i != idx]
         Sigmas = d * np.diag(V.T @ S @ V)
         Sigmas = np.tile(
             Sigmas.reshape(d, *[1 for _ in ds_slash_d]),
             (1, *ds_slash_d)
         )
+        
+        from Scripts.anBiGLasso_cov import eigenvalues_MLE as AHHHHH
+        AHHHHH(
+            Ss[0 if idx==0 else 1],
+            Ss[1 if idx==0 else 0],
+            Vs[0 if idx==0 else 1],
+            Vs[1 if idx==0 else 0],
+            10
+        )
+        
         vs[idx], *_ = calculateEigenvalues(Sigmas, B_approx_iters)
     return vs
 
@@ -99,7 +109,6 @@ def eigenvalues_MLE(Ys, Vs, B_approx_iters):
     Xs = rescaleYs(Ys, Vs)
     Sigmas = calculateSigmas(Xs)
     vs = calculateEigenvalues(Sigmas, B_approx_iters)
-        
     return vs
 
 def calculateEigenvalues(Sigmas, B_approx_iters):
@@ -126,8 +135,7 @@ def calculateEigenvalues(Sigmas, B_approx_iters):
             num_chunks = np.prod(ds[i+1:])
 
             # Break up into chunk_size blocks
-            #split_mat = np.array(np.split(a_vals, num_chunks))
-            split_mat = a_vals.reshape(num_chunks, -1) # TEST
+            split_mat = a_vals.reshape(num_chunks, -1)
             temp = split_mat[:, :chunk_size].copy()
             split_mat[:, :chunk_size] = split_mat[:, val*chunk_size:(val+1)*chunk_size]
             split_mat[:, val*chunk_size:(val+1)*chunk_size] = temp

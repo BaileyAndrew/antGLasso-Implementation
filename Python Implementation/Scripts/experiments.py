@@ -12,7 +12,7 @@ from Scripts.anBiGLasso import *
 from Scripts.EiGLasso import *
 from Scripts.TeraLasso import *
 from Scripts.anBiGLasso_cov import anBiGLasso as anBiGLasso_cov
-from Scripts.antGLasso import antGLasso
+from Scripts.antGLasso import antGLasso, antGLasso_heuristic
 from Scripts.nonparanormal_skeptic import *
 from cycler import cycler
 from itertools import product
@@ -68,6 +68,14 @@ def get_cms_for_betas(
                 Psi, Theta = anBiGLasso_cov(
                     T=T,
                     S=S,
+                    beta_1=b,
+                    beta_2=b,
+                    **kwargs_lasso
+                )
+            elif alg == "antGLasso_heuristic":
+                T, S = calculate_empirical_covariance_matrices(Ys)
+                Psi, Theta = antGLasso_heuristic(
+                    [T, S],
                     beta_1=b,
                     beta_2=b,
                     **kwargs_lasso
@@ -170,7 +178,12 @@ def create_precision_recall_curves(
             "N": 100,
             "eps": 10e-3,
         }
-    elif alg == "anBiGLasso" or alg == "anBiGLasso_cov" or alg == "anBiGLasso_cov_with_skeptic":
+    elif (
+        alg == "anBiGLasso"
+        or alg == "anBiGLasso_cov"
+        or alg == "anBiGLasso_cov_with_skeptic"
+        or alg == "antGLasso_heuristic"
+    ):
         kwargs_lasso = {
             "B_approx_iters": B_approx_iters
         }
@@ -217,7 +230,7 @@ def get_cms_for_betas_all_algs(
     """
     
     if algorithms is None:
-        algorithms = ["scBiGLasso", "anBiGLasso", "anBiGLasso_cov", "EiGLasso", "TeraLasso"]
+        algorithms = ["scBiGLasso", "anBiGLasso", "antGLasso_heuristic", "EiGLasso", "TeraLasso"]
     
     Psi_cms = np.zeros((*betas_to_try.shape, 2, 2))
     Theta_cms = np.zeros((*betas_to_try.shape, 2, 2))
@@ -244,13 +257,13 @@ def get_cms_for_betas_all_algs(
                         Ys=Ys,
                         beta_1=b,
                         beta_2=b,
-                        B_approx_iters=10
+                        B_approx_iters=1000
                     )
                 elif alg == "antGLasso":
                     Psis = antGLasso(
                         Ys=Ys,
                         betas=[b, b],
-                        B_approx_iters=10
+                        B_approx_iters=1000
                     )
                     Psi = Psis[0]
                     Theta = Psis[1]
@@ -268,6 +281,13 @@ def get_cms_for_betas_all_algs(
                         S=S,
                         beta_1=b,
                         beta_2=b,
+                        B_approx_iters=10
+                    )
+                elif alg == "antGLasso_heuristic":
+                    T, S = calculate_empirical_covariance_matrices(Ys)
+                    Psi, Theta = antGLasso_heuristic(
+                        [T, S],
+                        betas=[b, b],
                         B_approx_iters=10
                     )
                 elif alg == "EiGLasso":
@@ -305,7 +325,7 @@ def make_cm_plots_all_algs(
     title = None
 ) -> ("Matplotlib Figure", "Tuple of Axes"):
     if algorithms is None:
-        algorithms = ["scBiGLasso", "anBiGLasso", "anBiGLasso_cov", "EiGLasso", "TeraLasso"]
+        algorithms = ["scBiGLasso", "anBiGLasso", "antGLasso_heuristic", "EiGLasso", "TeraLasso"]
     with plt.style.context('Solarize_Light2'):
         plt.rcParams['axes.prop_cycle'] = cycler(color=[
             '#006BA4',
