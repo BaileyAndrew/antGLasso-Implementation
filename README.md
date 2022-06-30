@@ -114,10 +114,14 @@ As expected, more samples lead to better performance.
 
 For this algorithm, L1 Penalties correspond to thresholds above which we preserve edges. 
 
-![Regularization Results](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Final/PR%20antGLasso%20sparsity-based%20regularization.png)
+![Regularization Results 20pc](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Final/PR%20antGLasso%20sparsity-based%20regularization.png)
 
-This test was done on data with 20% sparsity.  We can see that, when we set the threshold to preserve 20% of the edges, we get
-a balance of precision and recall (~60% for both).
+This test was done on data with 20% edges.  We can see that, when we set the threshold to preserve 20% of the edges, we get
+a balance of precision and recall (~60% for both).  If we look two other examples, 10% and 40% edges respectively, we can see that setting the regularization parameter to the sparsity percent gives you a result where the precision and recall are roughly equal (it is on the diagonal of the precision-recall plot).  Overestimates of the number of edges will trade precision for recall, and vice versa for underestimates.
+
+10% Edges                  |  40% Edges
+:-------------------------:|:-------------------------:
+![Regularization Results 10pc](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Final/PR%20antGLasso%20sparsity-based%20regularization%2010pc.png) | ![Regularization Results 40pc](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Final/PR%20antGLasso%20sparsity-based%20regularization%2040pc.png)
 
 ## Performance on Real Data
 
