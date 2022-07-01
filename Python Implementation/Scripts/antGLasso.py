@@ -136,27 +136,36 @@ def calculateEigenvalues(Sigmas, B_approx_iters):
         
     Ls = np.zeros(tdims)
     
+    #print(a:=np.arange(a.shape[0])) # TEST
+    
     for it in range(B_approx_iters):
         a_vals = a.copy()
         # Select random eigenvalues
         idxs = np.random.randint(0, ds)
+        #idxs = [2, 2]#0*idxs # TEST
         
         ell_vals = np.arange(np.sum(ds))
 
+        # Move columns so that guesses are the first column
         for i, val in enumerate(idxs):
             offset = np.sum(ds[:i])
             ell_vals[offset:val+1+offset] = np.roll(ell_vals[offset:val+1+offset], 1)
 
+        # Move rows to preserve the matrix structure that was
+        # messed up by moving the columns earlier
         for i, val in enumerate(idxs):
             chunk_size = np.prod(ds[:i])
             num_chunks = np.prod(ds[i+1:])
 
             # Break up into chunk_size blocks
             split_mat = a_vals.reshape(num_chunks, -1)
-            temp = split_mat[:, :chunk_size].copy()
-            split_mat[:, :chunk_size] = split_mat[:, val*chunk_size:(val+1)*chunk_size]
-            split_mat[:, val*chunk_size:(val+1)*chunk_size] = temp
+            split_mat[:, :(val+1)*chunk_size] = np.roll(
+                split_mat[:, :(val+1)*chunk_size],
+                chunk_size,
+                axis=1
+            )
             a_vals = split_mat.reshape(-1)
+            #print(a_vals)
 
         shrunk = a_vals[0:1] # First row
         a_vals = a_vals[1:]
@@ -168,20 +177,37 @@ def calculateEigenvalues(Sigmas, B_approx_iters):
                 a_vals[0::step_size][:amount]
             ])
             a_vals = a_vals[step_size*amount:]
+            #print(shrunk)
 
+        shrunk = np.roll(shrunk, -1) # Put first row on the bottom
+        #print(shrunk)
+        #print('-')
+            
         for i, val in enumerate(idxs):
             # We subtract `i` to account for the fact that we've
             # already moved earlier columns!
             offset = np.sum(ds[:i])-i
             ell_vals[offset:] = np.roll(ell_vals[offset:], -1)
-
-        # B_inv @ np.conca.....
+            
+        # B_inv @ to_mult.....
         # but `B_csr` is a "matrix type" i.e. uses * for matmul
         to_mult = np.concatenate([
             shrunk,
             Ls[ell_vals[-K+1:]] / it if it >= 1 else 0*Ls[ell_vals[-K+1:]]+1
         ])
-        out = B_csr * to_mult
+        
+        #print(to_mult)
+        #out = B_csr * to_mult
+        out = np.zeros(to_mult.shape)
+        out[ell_vals] = B_csr * to_mult
+        #print(out)
+        
+        #i = idxs[1] # TEST
+        #j = idxs[0] # TEST
+        #n = ds[0] # TEST
+        #p = ds[1] # TEST
+        #out[i+n-1:] = np.roll(out[i+n-1:], 1) # TEST
+        #out[j:] = np.roll(out[j:], 1) # TEST
         
         Ls += out
     Ls /= B_approx_iters

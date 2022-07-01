@@ -203,7 +203,10 @@ def calculateEigenvalues(
             # We can work out that the duplicate row occurs
             # when, for integer x, j+x*n is in [i*n, i*n+n)
             # We can use this to work out the index to delete
-            #print(a)
+            #print("========")
+            #print(a:=np.arange(a.shape[0])) # TEST
+            #j = 2 # TEST
+            #i = 2 # TEST
             a_ = np.concatenate([
                 a[i*n:i*n+n],
                 np.delete(a[j::n], ((i*n + n - j - 1) // n))
@@ -214,6 +217,9 @@ def calculateEigenvalues(
                 
             a_[j:] = np.roll(a_[j:], -1)
             
+            #print(a_)
+            #print('-')
+            
             # Add previous estimate for eigenvalue corresponding
             # to the last column to the end of a_, so that
             # we can solve an invertible square matrix!
@@ -221,15 +227,22 @@ def calculateEigenvalues(
             a_2[:n+p-1] = a_
             a_2[-1] = (Ls[i+n-1] / it) if it > 0 else 1
             
+            #print(a_2)
+            
             # The version of scipy this was written in only has good
             # support for sparse "matrices", not "arrays" - what
             # this means for the reader is that '*' corresponds to
             # '@' here.  It is matrix multiplication, not elementwise.
             out = B_csr * a_2
             
+            #print(out)
+            
             # Move last two cols back to i, j positions
             out[i+n-1:] = np.roll(out[i+n-1:], 1)
             out[j:] = np.roll(out[j:], 1)
+            
+            #print(out)
+            
             Ls += out
         Ls /= B_approx_iters
     

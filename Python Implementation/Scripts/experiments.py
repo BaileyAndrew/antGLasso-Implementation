@@ -257,13 +257,13 @@ def get_cms_for_betas_all_algs(
                         Ys=Ys,
                         beta_1=b,
                         beta_2=b,
-                        B_approx_iters=1000
+                        B_approx_iters=100
                     )
                 elif alg == "antGLasso":
                     Psis = antGLasso(
                         Ys=Ys,
                         betas=[b, b],
-                        B_approx_iters=1000
+                        B_approx_iters=100
                     )
                     Psi = Psis[0]
                     Theta = Psis[1]
