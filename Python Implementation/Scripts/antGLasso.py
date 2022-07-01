@@ -1,6 +1,7 @@
 import numpy as np
-from scipy.linalg import solve_triangular
 from Scripts.utilities import K
+
+import scipy.sparse as sparse
 
 def antGLasso(
     Ys: "(n, d_1, ..., d_K) input tensor",
@@ -114,10 +115,26 @@ def eigenvalues_MLE(Ys, Vs, B_approx_iters):
 def calculateEigenvalues(Sigmas, B_approx_iters):
     ds = np.array(Sigmas.shape)
     K = len(ds)
+    tdims = np.sum(ds)
     a = (1 / Sigmas).reshape(-1, order='F')
-    B_inv = create_B_inverse(ds)
+    
+    #B_inv = create_B_inverse(ds)
         
-    Ls = np.zeros(sum(ds))
+        
+    B_csr = sparse.eye(tdims, tdims, format='lil')
+    B_csr[-K, -K+1:] = -1
+    B_csr[0:ds[0]-1, -K+1:] = -1
+    B_csr[ds[0]-1:-K, -K] = -1
+    r = ds[0]-1
+    for idx, d in enumerate(ds):
+        if idx==0:
+            continue
+        next_r = r+d-1
+        B_csr[r:next_r, -K+idx] = 1
+        r = next_r
+    B_csr = sparse.csr_matrix(B_csr)
+        
+    Ls = np.zeros(tdims)
     
     for it in range(B_approx_iters):
         a_vals = a.copy()
@@ -158,10 +175,13 @@ def calculateEigenvalues(Sigmas, B_approx_iters):
             offset = np.sum(ds[:i])-i
             ell_vals[offset:] = np.roll(ell_vals[offset:], -1)
 
-        out = B_inv @ np.concatenate([
+        # B_inv @ np.conca.....
+        # but `B_csr` is a "matrix type" i.e. uses * for matmul
+        to_mult = np.concatenate([
             shrunk,
             Ls[ell_vals[-K+1:]] / it if it >= 1 else 0*Ls[ell_vals[-K+1:]]+1
         ])
+        out = B_csr * to_mult
         
         Ls += out
     Ls /= B_approx_iters

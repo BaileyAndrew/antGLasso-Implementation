@@ -188,6 +188,7 @@ def calculateEigenvalues(
         B_csr[n-1:-2, -1] = 1
         B_csr[-2, -1] = -1
         B_csr = sparse.csr_matrix(B_csr)
+        #print(B_csr.todense())
         
         #print(B_inv)
         
