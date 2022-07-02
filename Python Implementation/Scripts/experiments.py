@@ -22,7 +22,7 @@ def get_cms_for_betas(
     attempts: "Amount of times we run the experiment to average over",
     kwargs_gen: "Dictionary of parameters for generating random data",
     kwargs_lasso: "Dictionary of parameters for the scBiGLasso algorithm",
-    cm_mode: "`mode` argument for `generate_confusion_matrices`" = "Negative",
+    cm_mode: "`mode` argument for `generate_confusion_matrices`" = "Nonzero",
     verbose: bool = False,
     alg: str = "scBiGLasso"
 ) -> (
@@ -158,7 +158,7 @@ def create_precision_recall_curves(
     alg: str = "scBiGLasso",
     df_scale: "int >= 1" = 1,
     B_approx_iters: int = 10,
-    cm_mode = "Negative"
+    cm_mode = "Nonzero"
 ):
     """
     Given a list of L1 penalties, calculate the 
@@ -214,7 +214,7 @@ def get_cms_for_betas_all_algs(
     betas_to_try: "List of L1 penalties to try",
     attempts: "Amount of times we run the experiment to average over",
     kwargs_gen: "Dictionary of parameters for generating random data",
-    cm_mode: "`mode` argument for `generate_confusion_matrices`" = "Negative",
+    cm_mode: "`mode` argument for `generate_confusion_matrices`" = "Nonzero",
     algorithms = None,
     verbose: bool = False
 ) -> (
@@ -287,7 +287,7 @@ def get_cms_for_betas_all_algs(
                     T, S = calculate_empirical_covariance_matrices(Ys)
                     Psi, Theta = antGLasso_heuristic(
                         [T, S],
-                        betas=[b, b],
+                        sparsities=[b, b],
                         B_approx_iters=10
                     )
                 elif alg == "EiGLasso":
@@ -369,7 +369,7 @@ def create_precision_recall_curves_all(
     verbose: bool = False,
     algorithms: list = None,
     df_scale: "int >= 1" = 1,
-    cm_mode = "Negative",
+    cm_mode = "Nonzero",
     title = None
 ):
     """
@@ -406,7 +406,7 @@ def get_cms_for_betas_tensor(
     betas_to_try: "List of L1 penalties to try",
     attempts: "Amount of times we run the experiment to average over",
     kwargs_gen: "Dictionary of parameters for generating random data",
-    cm_mode: "`mode` argument for `generate_confusion_matrices`" = "Negative",
+    cm_mode: "`mode` argument for `generate_confusion_matrices`" = "Nonzero",
     algorithms = None,
     verbose: bool = False
 ) -> (
@@ -439,7 +439,13 @@ def get_cms_for_betas_tensor(
                     Psis = antGLasso(
                         Ys=Ys,
                         betas=[b for _ in ds],
-                        B_approx_iters=10
+                        B_approx_iters=1000
+                    )
+                elif alg == "antGLasso_heuristic":
+                    Psis = antGLasso_heuristic(
+                        nonparanormal_tensor_skeptic(Ys),
+                        sparsities=[b for _ in ds],
+                        B_approx_iters=1000
                     )
                 elif alg == "TeraLasso":
                     Psis = TeraLasso(
@@ -466,7 +472,7 @@ def create_precision_recall_curves_tensor(
     verbose: bool = False,
     algorithms: list = None,
     df_scale: "int >= 1" = 1,
-    cm_mode = "Negative",
+    cm_mode = "Nonzero",
     title = None
 ):
     """
@@ -576,7 +582,7 @@ def get_cms_for_betas_antGLasso(
                 regularizer = {'betas': [b, b]} if not try_sparsities else {'sparsities': [b, b]}
                 Psis = antGLasso(
                     Ys=Ys,
-                    B_approx_iters=10,
+                    B_approx_iters=100,
                     **regularizer
                 )
                 Psis_cms[idx_alg, idx_b, ...] += np.array([generate_confusion_matrices(

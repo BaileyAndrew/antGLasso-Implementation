@@ -188,7 +188,7 @@ def F1_score(
 
 def binarize_matrix(
     M: "Input matrix of any dimensions",
-    eps: "Tolerance" = 0.0000001,
+    eps: "Tolerance" = 0,
     mode: "Negative | <Tolerance" = '<Tolerance'
 ):
     """
@@ -211,7 +211,7 @@ def binarize_matrix(
 def generate_confusion_matrices(
     pred: "Square matrix",
     truth: "Square matrix",
-    eps: "Tolerance" = 0.001,
+    eps: "Tolerance" = 0,
     mode: "See docstring" = '<Tolerance'
 ) -> "(2, 2) confusion matrix [[TP, FP], [FN, TN]]":
     """

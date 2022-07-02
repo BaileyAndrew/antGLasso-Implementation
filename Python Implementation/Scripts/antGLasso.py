@@ -58,7 +58,7 @@ def antGLasso_heuristic(
         
     Vs = eigenvectors_MLE(Ss)
     vs = eigenvalues_heuristic(Ss, Vs, B_approx_iters)
-    Psis = (V @ np.diag(v) @ V.T for V, v in zip(Vs, vs))
+    Psis = [V @ np.diag(v) @ V.T for V, v in zip(Vs, vs)]
     
     if betas is not None:
         Psis = shrink(Psis, betas)
@@ -74,22 +74,14 @@ def eigenvalues_heuristic(Ss, Vs, B_approx_iters):
         V = Vs[idx]
         d = ds[idx]
         ds_slash_d = [d for i, d in enumerate(ds) if i != idx]
-        Sigmas = d * np.diag(V.T @ S @ V)
+        Sigmas = np.prod(ds_slash_d) * np.diag(V.T @ S @ V)
         Sigmas = np.tile(
             Sigmas.reshape(d, *[1 for _ in ds_slash_d]),
             (1, *ds_slash_d)
         )
         
-        from Scripts.anBiGLasso_cov import eigenvalues_MLE as AHHHHH
-        AHHHHH(
-            Ss[0 if idx==0 else 1],
-            Ss[1 if idx==0 else 0],
-            Vs[0 if idx==0 else 1],
-            Vs[1 if idx==0 else 0],
-            10
-        )
-        
         vs[idx], *_ = calculateEigenvalues(Sigmas, B_approx_iters)
+ 
     return vs
 
 def eigenvectors_MLE(Ss):
