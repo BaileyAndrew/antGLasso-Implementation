@@ -148,7 +148,11 @@ roughly map it to a normal.
 
 #### antGLasso
 
-![Mouse antGLasso](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Final/antGLasso%20Mouse%20Performance%20Direct%20Fit.png)
+![Mouse antGLasso](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Final/antGLasso%20Performance%20Unaugmented.png)
+
+This is a poor result, presumably because of antGLasso's low-sample weakness.  We can improve it with data augmentation.  The augmentation process is: in each artificially created sample, we copy the original sample but then scale each cell's gene counts by a randomly chosen factor.  This gives us the following graph:
+
+![Mouse antGLasso](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Final/antGLasso%20Performance%20Augmented.png)
 
 antGLasso may have learned some information about this problem (it identifies S and G2M block diagonals), but not much
 - it seems to put S and G2M cells together, and does not recognize the G1 cluster.
