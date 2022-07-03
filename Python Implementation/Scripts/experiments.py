@@ -284,11 +284,12 @@ def get_cms_for_betas_all_algs(
                         B_approx_iters=10
                     )
                 elif alg == "antGLasso_heuristic":
-                    T, S = calculate_empirical_covariance_matrices(Ys)
+                    #T, S = calculate_empirical_covariance_matrices(Ys)
+                    T, S = nonparanormal_tensor_skeptic(Ys)
                     Psi, Theta = antGLasso_heuristic(
                         [T, S],
                         sparsities=[b, b],
-                        B_approx_iters=10
+                        B_approx_iters=100
                     )
                 elif alg == "EiGLasso":
                     Psi, Theta = EiGLasso(

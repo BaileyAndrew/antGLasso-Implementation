@@ -33,4 +33,4 @@ def nonparanormal_tensor_skeptic(
             )[0])
         Ss[idx] = Ss[idx].mean(axis=0)
         np.fill_diagonal(Ss[idx], 1)
-    return Ss[::-1] #b/c this func made them in reversed order
+    return Ss
