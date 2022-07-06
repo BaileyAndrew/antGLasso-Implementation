@@ -221,6 +221,13 @@ As before, we can view the strengths of the connections as a gif:
 
 ![Duck](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Final/antGLasso%20COIL.gif)
 
+## Recovering Structure
+
+![Good Duck](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Final/antGLasso%20COIL%20Recreation.gif)
+
+If we shuffle the data, we can still do a good job at recovering the video.  The recovery method is: pick a random frame
+as the starting frame.  Next, choose whichever frame is most associated with this frame (that hasn't already been used) and choose that
+to be the next frame.  Repeat this process.  The rows and columns were shuffled as well, so we do a similar method.
 
 ## Data
 
