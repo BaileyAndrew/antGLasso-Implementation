@@ -227,7 +227,10 @@ As before, we can view the strengths of the connections as a gif:
 
 If we shuffle the data, we can still do a good job at recovering the video.  The recovery method is: pick a random frame
 as the starting frame.  Next, choose whichever frame is most associated with this frame (that hasn't already been used) and choose that
-to be the next frame.  Repeat this process.  The rows and columns were shuffled as well, so we do a similar method.
+to be the next frame.  Repeat this process.  The rows and columns were shuffled as well, so we do a similar method.  However,
+unlike frames, they aren't cyclical, so we have to figure out what the first row(/column) is.  Middle rows should have two valid
+connections (above and below them), but the top and bottom rows should only have one.  Thus we pick whichever row has the most lopsided
+connections to be our starting point.
 
 ## Data
 
