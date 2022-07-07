@@ -8,3 +8,4 @@ Data/**/**.h5
 Data/**/**.txt
 Data/**/**.mtx
 Data/**/**.gz
+Data/mnist_test_seq.npy
