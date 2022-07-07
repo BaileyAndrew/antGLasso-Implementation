@@ -257,3 +257,13 @@ def K(
     I = np.eye(shape)
     J = np.ones((shape, shape))
     return a * I + b * (J - I)
+
+def scale_diagonals_to_1(Psi):
+    """
+    Scales rows and columns equally such that
+    the diagonals of the input are all equal to 1.
+    """
+    diags = np.diag(Psi).copy()
+    diags = np.abs(diags)
+    D = np.diag(1 / np.sqrt(diags))
+    return D @ Psi @ D
