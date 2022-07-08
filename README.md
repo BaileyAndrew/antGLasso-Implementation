@@ -232,6 +232,13 @@ unlike frames, they aren't cyclical, so we have to figure out what the first row
 connections (above and below them), but the top and bottom rows should only have one.  Thus we pick whichever row has the most lopsided
 connections to be our starting point.
 
+We can then ask, what if we took two back-to-back videos and shuffled them up?
+
+![Good Duck](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Final/antGLasso%20COIL%20Recreation%20Back-to-Back.gif)
+
+Row performance degrades but otherwise it does an adequate job.  Perhaps columns do better because the axis of rotation is a column?
+Thus the column structure is intertwined with the motion of the object, unlike the row structure.  Because rows are better when there is just one video, this implies we might get good results out of a recursive approach: apply antGLasso, split into clusters, then apply antGLasso separatly to each cluster.
+
 ## Data
 
 Given precision matrices, we generate gaussian matrix data using the matrix-variate normal with
