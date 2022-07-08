@@ -148,11 +148,10 @@ def calculateEigenvalues(Sigmas, B_approx_iters):
         csidx = chunk_size @ idxs
         for ell, d in enumerate(ds):
             start = csidx - idxs[ell]*np.prod(ds[:ell])
+            crossover = (csidx - start) // chunk_size[ell]
             rows += [
-                start + np.delete(
-                    np.arange(d),
-                    (csidx - start) // chunk_size[ell]
-                )* chunk_size[ell]
+                start + np.arange(crossover) * chunk_size[ell],
+                start + np.arange(crossover+1, d) * chunk_size[ell]
             ]
         rows += [np.array([csidx])]
         shrunk = a_vals[list(np.concatenate(rows))]
