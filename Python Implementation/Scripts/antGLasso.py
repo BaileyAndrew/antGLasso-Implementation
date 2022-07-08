@@ -109,11 +109,8 @@ def calculateEigenvalues(Sigmas, B_approx_iters):
     ds = np.array(Sigmas.shape)
     K = len(ds)
     tdims = np.sum(ds)
-    a = (1 / Sigmas).reshape(-1, order='F')
-    
-    #B_inv = create_B_inverse(ds)
-        
-        
+    a_vals = (1 / Sigmas).reshape(-1, order='F')
+
     B_csr = sparse.eye(tdims, tdims, format='lil')
     B_csr[-K, -K+1:] = -1
     B_csr[0:ds[0]-1, -K+1:] = -1
@@ -129,13 +126,10 @@ def calculateEigenvalues(Sigmas, B_approx_iters):
         
     Ls = np.zeros(tdims)
     
-    #print(a:=np.arange(a.shape[0])) # TEST
     
     for it in range(B_approx_iters):
-        a_vals = a.copy()
         # Select random eigenvalues
         idxs = np.random.randint(0, ds)
-        #idxs = [2, 2]#0*idxs # TEST
         
         ell_vals = np.arange(np.sum(ds))
 
@@ -144,40 +138,16 @@ def calculateEigenvalues(Sigmas, B_approx_iters):
             offset = np.sum(ds[:i])
             ell_vals[offset:val+1+offset] = np.roll(ell_vals[offset:val+1+offset], 1)
 
-        # Move rows to preserve the matrix structure that was
-        # messed up by moving the columns earlier
-        for i, val in enumerate(idxs):
-            chunk_size = np.prod(ds[:i])
-            num_chunks = np.prod(ds[i+1:])
 
-            # Break up into chunk_size blocks
-            #split_mat = a_vals.reshape(num_chunks, -1)
-            a_vals.shape = (num_chunks, a_vals.shape[0] // num_chunks)
-            #split_mat[:, :(val+1)*chunk_size] = np.roll(
-            #    split_mat[:, :(val+1)*chunk_size],
-            #    chunk_size,
-            #    axis=1
-            #)
-            temp = a_vals[:, val*chunk_size:(val+1)*chunk_size].copy()
-            a_vals[:, chunk_size:(val+1)*chunk_size] = a_vals[:, :val*chunk_size]
-            a_vals[:, :chunk_size] = temp
-            a_vals = a_vals.reshape(-1)
-
-        shrunk = a_vals[0:1] # First row
-        next_vals = a_vals[1:]
-        for i, val in enumerate(ds):
-            step_size = np.prod(ds[:i])
-            amount = val-1
-            shrunk = np.concatenate([
-                shrunk,
-                next_vals[0::step_size][:amount]
-            ])
-            next_vals = next_vals[step_size*amount:]
-            #print(shrunk)
-
-        shrunk = np.roll(shrunk, -1) # Put first row on the bottom
-        #print(shrunk)
-        #print('-')
+        rows = []
+        chunk_size = np.array([np.prod(ds[:ell]) for ell in range(K)])
+        csidx = chunk_size @ idxs
+        for ell, d in enumerate(ds):
+            start = csidx - idxs[ell]*np.prod(ds[:ell])
+            rows += [idx for k in range(d) if (idx:=start + k*chunk_size[ell]) != csidx]
+        rows += [csidx]
+        shrunk = a_vals[rows]
+        
         for i, val in enumerate(idxs):
             # We subtract `i` to account for the fact that we've
             # already moved earlier columns!
@@ -191,8 +161,6 @@ def calculateEigenvalues(Sigmas, B_approx_iters):
             Ls[ell_vals[-K+1:]] / it if it >= 1 else 0*Ls[ell_vals[-K+1:]]+1
         ])
         
-        #print(to_mult)
-        #out = B_csr * to_mult
         out = np.zeros(to_mult.shape)
         out[ell_vals] = B_csr * to_mult
         
@@ -269,41 +237,6 @@ def shrink_sparsities(
         Psi[Psabs < quant] = 0
         out.append(Psi)
     return out
-
-def nmode_gram(A, n):
-    An = np.reshape(
-        np.moveaxis(A, n, 0),
-        (A.shape[n], -1), # The -1 infers the value (m_n)
-        order='F' # Do math vectorization order rather than numpy vectorization order
-    )
-    return An @ An.T
-
-def create_B_inverse(shp):
-    K = len(shp)
-    I_block_shp = np.sum(shp) - K
-    I_block = np.eye(I_block_shp)
-    Null_block = np.zeros((K, I_block_shp))
-    Lower_I_block = np.eye(K, K)
-    Lower_I_block[0, 1:] = -1
-  
-    Rest = np.ones((I_block_shp, K))
-    zero_idx = 0
-    for idx, s in enumerate(shp):
-        update = s-1
-        Rest[zero_idx:zero_idx+update, idx] = 0
-        zero_idx += update
-        
-        
-    return np.concatenate([
-        np.concatenate([
-            I_block,
-            Null_block
-        ], axis=0),
-        np.concatenate([
-            -Rest @ Lower_I_block,
-            Lower_I_block
-        ], axis=0)
-    ], axis=1)
 
 def nmode_gram(A, n):
     An = np.reshape(
