@@ -140,18 +140,12 @@ def calculateEigenvalues(Sigmas, B_approx_iters):
 
         # Move columns so that guesses are the first column
         for i, val in enumerate(idxs):
-            if i == 0:
-                # We don't actually need to mess with the first idx
-                continue
             offset = np.sum(ds[:i])
             ell_vals[offset:val+1+offset] = np.roll(ell_vals[offset:val+1+offset], 1)
 
         # Move rows to preserve the matrix structure that was
         # messed up by moving the columns earlier
         for i, val in enumerate(idxs):
-            if i == 0:
-                # We don't actually need to mess with the first idx
-                continue
             chunk_size = np.prod(ds[:i])
             num_chunks = np.prod(ds[i+1:])
 
