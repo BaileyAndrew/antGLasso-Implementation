@@ -162,24 +162,22 @@ def calculateEigenvalues(Sigmas, B_approx_iters):
             a_vals[:, chunk_size:(val+1)*chunk_size] = a_vals[:, :val*chunk_size]
             a_vals[:, :chunk_size] = temp
             a_vals = a_vals.reshape(-1)
-            #print(a_vals)
 
         shrunk = a_vals[0:1] # First row
-        a_vals = a_vals[1:]
+        next_vals = a_vals[1:]
         for i, val in enumerate(ds):
             step_size = np.prod(ds[:i])
             amount = val-1
             shrunk = np.concatenate([
                 shrunk,
-                a_vals[0::step_size][:amount]
+                next_vals[0::step_size][:amount]
             ])
-            a_vals = a_vals[step_size*amount:]
+            next_vals = next_vals[step_size*amount:]
             #print(shrunk)
 
         shrunk = np.roll(shrunk, -1) # Put first row on the bottom
         #print(shrunk)
         #print('-')
-            
         for i, val in enumerate(idxs):
             # We subtract `i` to account for the fact that we've
             # already moved earlier columns!
@@ -197,14 +195,6 @@ def calculateEigenvalues(Sigmas, B_approx_iters):
         #out = B_csr * to_mult
         out = np.zeros(to_mult.shape)
         out[ell_vals] = B_csr * to_mult
-        #print(out)
-        
-        #i = idxs[1] # TEST
-        #j = idxs[0] # TEST
-        #n = ds[0] # TEST
-        #p = ds[1] # TEST
-        #out[i+n-1:] = np.roll(out[i+n-1:], 1) # TEST
-        #out[j:] = np.roll(out[j:], 1) # TEST
         
         Ls += out
     Ls /= B_approx_iters
