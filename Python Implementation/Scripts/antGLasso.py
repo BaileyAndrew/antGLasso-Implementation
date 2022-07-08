@@ -2,7 +2,6 @@ import numpy as np
 from Scripts.utilities import K
 
 import scipy.sparse as sparse
-import numba
 
 
 def antGLasso(
@@ -106,7 +105,6 @@ def eigenvalues_MLE(Ys, Vs, B_approx_iters):
     vs = calculateEigenvalues(Sigmas, B_approx_iters)
     return vs
 
-@numba.njit
 def calculateEigenvalues(Sigmas, B_approx_iters):
     ds = np.array(Sigmas.shape)
     K = len(ds)
