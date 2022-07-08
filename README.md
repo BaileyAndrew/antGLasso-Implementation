@@ -234,10 +234,17 @@ connections to be our starting point.
 
 We can then ask, what if we took two back-to-back videos and shuffled them up?
 
-![Good Duck](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Final/antGLasso%20COIL%20Recreation%20Back-to-Back.gif)
+![Two Duck](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Final/antGLasso%20COIL%20Recreation%20Back-to-Back.gif)
 
 Row performance degrades but otherwise it does an adequate job.  Perhaps columns do better because the axis of rotation is a column?
 Thus the column structure is intertwined with the motion of the object, unlike the row structure.  Because rows are better when there is just one video, this implies we might get good results out of a recursive approach: apply antGLasso, split into clusters, then apply antGLasso separatly to each cluster.
+
+What happens if we shove all 20 COIL videos back-to-back?:
+
+![Many Duck](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Final/antGLasso%20COIL%20Recreation%20All%20Back-to-Back.gif)
+
+Quite interestingly, it perfects the rows and the columns, but acquires very poor performance for the frames.  It could be that it is picking up a 
+different pattern, such as the degrees of rotation of objects rather than temporal pattern - or, well, maybe it's just doing bad.
 
 ## Data
 
