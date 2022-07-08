@@ -138,15 +138,25 @@ def calculateEigenvalues(Sigmas, B_approx_iters):
             offset = np.sum(ds[:i])
             ell_vals[offset:val+1+offset] = np.roll(ell_vals[offset:val+1+offset], 1)
 
-
+        # Calculate the subset of rows that we want
+        # This implementation mimics the implementation w/ rolls used before,
+        # but all it does is list indexing, meaning it is much faster as it
+        # only copies exactly the data we want, and only ever copies data
+        # once.
         rows = []
         chunk_size = np.array([np.prod(ds[:ell]) for ell in range(K)])
         csidx = chunk_size @ idxs
         for ell, d in enumerate(ds):
             start = csidx - idxs[ell]*np.prod(ds[:ell])
-            rows += [idx for k in range(d) if (idx:=start + k*chunk_size[ell]) != csidx]
-        rows += [csidx]
-        shrunk = a_vals[rows]
+            rows += [
+                start + np.delete(
+                    np.arange(d),
+                    (csidx - start) // chunk_size[ell]
+                )* chunk_size[ell]
+            ]
+        rows += [np.array([csidx])]
+        shrunk = a_vals[list(np.concatenate(rows))]
+        
         
         for i, val in enumerate(idxs):
             # We subtract `i` to account for the fact that we've
