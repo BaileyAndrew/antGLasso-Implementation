@@ -2,6 +2,8 @@ import numpy as np
 from Scripts.utilities import K
 
 import scipy.sparse as sparse
+import numba
+
 
 def antGLasso(
     Ys: "(n, d_1, ..., d_K) input tensor",
@@ -104,6 +106,7 @@ def eigenvalues_MLE(Ys, Vs, B_approx_iters):
     vs = calculateEigenvalues(Sigmas, B_approx_iters)
     return vs
 
+@numba.njit
 def calculateEigenvalues(Sigmas, B_approx_iters):
     ds = np.array(Sigmas.shape)
     K = len(ds)
@@ -150,16 +153,17 @@ def calculateEigenvalues(Sigmas, B_approx_iters):
             num_chunks = np.prod(ds[i+1:])
 
             # Break up into chunk_size blocks
-            split_mat = a_vals.reshape(num_chunks, -1)
+            #split_mat = a_vals.reshape(num_chunks, -1)
+            a_vals.shape = (num_chunks, a_vals.shape[0] // num_chunks)
             #split_mat[:, :(val+1)*chunk_size] = np.roll(
             #    split_mat[:, :(val+1)*chunk_size],
             #    chunk_size,
             #    axis=1
             #)
-            temp = split_mat[:, val*chunk_size:(val+1)*chunk_size].copy()
-            split_mat[:, chunk_size:(val+1)*chunk_size] = split_mat[:, :val*chunk_size]
-            split_mat[:, :chunk_size] = temp
-            a_vals = split_mat.reshape(-1)
+            temp = a_vals[:, val*chunk_size:(val+1)*chunk_size].copy()
+            a_vals[:, chunk_size:(val+1)*chunk_size] = a_vals[:, :val*chunk_size]
+            a_vals[:, :chunk_size] = temp
+            a_vals = a_vals.reshape(-1)
             #print(a_vals)
 
         shrunk = a_vals[0:1] # First row
