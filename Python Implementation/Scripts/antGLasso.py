@@ -106,11 +106,14 @@ def eigenvalues_MLE(Ys, Vs, B_approx_iters):
     return vs
 
 def calculateEigenvalues(Sigmas, B_approx_iters):
-    ds = np.array(Sigmas.shape)
+    # We reverse it b/c without reversing we need a fortran-contiguous array,
+    # and converting to f-contig would require a copy of a very large matrix
+    # But if we reverse order of axes, a c-contig looks like an f-contig
+    ds = np.array(Sigmas.shape)[::-1]
     K = len(ds)
     tdims = np.sum(ds)
     #a_vals = (1 / Sigmas).reshape(-1, order='F')
-    a_vals = Sigmas.reshape(-1, order='F')
+    a_vals = Sigmas.reshape(-1)#, order='F')
 
     B_csr = sparse.eye(tdims, tdims, format='lil')
     B_csr[-K, -K+1:] = -1
@@ -177,7 +180,9 @@ def calculateEigenvalues(Sigmas, B_approx_iters):
         
         Ls += out
     Ls /= B_approx_iters
-    return [Ls[np.sum(ds[:ell]):np.sum(ds[:ell+1])] for ell in range(K)]
+    
+    # We reverse order of Ls since at start we reversed order of dimensions
+    return [Ls[np.sum(ds[:ell]):np.sum(ds[:ell+1])] for ell in range(K)][::-1]
     
 
 def rescaleYs(
