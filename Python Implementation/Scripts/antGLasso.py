@@ -109,7 +109,8 @@ def calculateEigenvalues(Sigmas, B_approx_iters):
     ds = np.array(Sigmas.shape)
     K = len(ds)
     tdims = np.sum(ds)
-    a_vals = (1 / Sigmas).reshape(-1, order='F')
+    #a_vals = (1 / Sigmas).reshape(-1, order='F')
+    a_vals = Sigmas.reshape(-1, order='F')
 
     B_csr = sparse.eye(tdims, tdims, format='lil')
     B_csr[-K, -K+1:] = -1
@@ -165,8 +166,9 @@ def calculateEigenvalues(Sigmas, B_approx_iters):
             
         # B_inv @ to_mult.....
         # but `B_csr` is a "matrix type" i.e. uses * for matmul
+        # We do 1/shrunk b/c we want precisions, not variances
         to_mult = np.concatenate([
-            shrunk,
+            1/shrunk,
             Ls[ell_vals[-K+1:]] / it if it >= 1 else 0*Ls[ell_vals[-K+1:]]+1
         ])
         
