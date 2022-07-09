@@ -246,6 +246,13 @@ What happens if we shove all 20 COIL videos back-to-back?:
 Quite interestingly, it perfects the rows and the columns, but acquires very poor performance for the frames.  It could be that it is picking up a 
 different pattern, such as the degrees of rotation of objects rather than temporal pattern - or, well, maybe it's just doing bad.
 
+The final thing to test would be how it performs if we consider each of the 20 videos as one sample. 
+
+![Many Duck 2](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Final/antGLasso%20COIL%20Recreation%20All%20Samples.gif)
+
+Having 20 samples of video data doesn't really result in a noticeable improvement in video reconstruction quality over the single-sample case.
+It's still near-but-not-quite perfect.
+
 ## Data
 
 Given precision matrices, we generate gaussian matrix data using the matrix-variate normal with
