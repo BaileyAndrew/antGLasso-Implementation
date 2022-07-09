@@ -106,15 +106,15 @@ def eigenvalues_MLE(Ys, Vs, B_approx_iters):
     return vs
 
 def calculateEigenvalues(Sigmas, B_approx_iters):
-    # We reverse it b/c without reversing we need a fortran-contiguous array,
+    # We reverse ds b/c without reversing we need a fortran-contiguous array,
     # and converting to f-contig would require a copy of a very large matrix
     # But if we reverse order of axes, a c-contig looks like an f-contig
     ds = np.array(Sigmas.shape)[::-1]
     K = len(ds)
     tdims = np.sum(ds)
-    #a_vals = (1 / Sigmas).reshape(-1, order='F')
-    a_vals = Sigmas.reshape(-1)#, order='F')
+    a_vals = Sigmas.reshape(-1)
 
+    # This is the matrix that maps our precisions to our eigenvalues
     B_csr = sparse.eye(tdims, tdims, format='lil')
     B_csr[-K, -K+1:] = -1
     B_csr[0:ds[0]-1, -K+1:] = -1
