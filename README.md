@@ -239,19 +239,25 @@ We can then ask, what if we took two back-to-back videos and shuffled them up?
 Row performance degrades but otherwise it does an adequate job.  Perhaps columns do better because the axis of rotation is a column?
 Thus the column structure is intertwined with the motion of the object, unlike the row structure.  Because rows are better when there is just one video, this implies we might get good results out of a recursive approach: apply antGLasso, split into clusters, then apply antGLasso separatly to each cluster.
 
-What happens if we shove all 20 COIL videos back-to-back?:
-
-![Many Duck](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Final/antGLasso%20COIL%20Recreation%20All%20Back-to-Back.gif)
-
-Quite interestingly, it perfects the rows and the columns, but acquires very poor performance for the frames.  It could be that it is picking up a 
-different pattern, such as the degrees of rotation of objects rather than temporal pattern - or, well, maybe it's just doing bad.
-
-The final thing to test would be how it performs if we consider each of the 20 videos as one sample. 
+We may want to know how it performs if we consider each of the 20 videos as one sample. 
 
 ![Many Duck 2](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Final/antGLasso%20COIL%20Recreation%20All%20Samples.gif)
 
 Having 20 samples of video data doesn't really result in a noticeable improvement in video reconstruction quality over the single-sample case.
 It's still near-but-not-quite perfect.
+
+What happens if we shove all 20 COIL videos back-to-back?:
+
+![Many Duck](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Final/antGLasso%20COIL%20Recreation%20All%20Back-to-Back.gif)
+
+Quite interestingly, it perfects the rows and the columns, but acquires very poor performance for the frames.  It could be that it is picking up a 
+different pattern, such as the degrees of rotation of objects rather than temporal pattern - or, well, maybe it's just doing bad.  To fix this,
+we apply sklearn's spectral clustering algorithm to cluster it first before we try to temporally order it.
+
+![Postclust Duck](https://github.com/BaileyAndrew/scBiGLasso-Implementation/blob/main/Plots/Final/antGLasso%20COIL%20Recreation%20All%20Postclustering.gif)
+
+We can see that it does better now - although the frames are still a lot worse than in the case where there were only a few videos.
+
 
 ## Data
 
