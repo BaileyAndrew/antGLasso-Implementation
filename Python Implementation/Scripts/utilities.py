@@ -267,3 +267,51 @@ def scale_diagonals_to_1(Psi):
     diags = np.abs(diags)
     D = np.diag(1 / np.sqrt(diags))
     return D @ Psi @ D
+
+def shuffle_axes(_mat, /, axes: list):
+    """
+    For every axis, shuffle the matrix on that axis.
+    """
+    mat = _mat.copy()
+    for ax in axes:
+        idxs = np.arange(mat.shape[ax])
+        np.random.shuffle(idxs)
+        slices = [slice(None)] * (ax+1)
+        slices[-1] = idxs
+        mat = mat[tuple(slices)]
+    return mat
+
+def reconstruct_axes(_mat, /, axes: list, Psis, return_order=False, first_idx=None):
+    """
+    Uses Psis in a greedy way to work out the best ordering
+    of the data.
+    
+    REQUIRES THE FIRST AXIS TO BE A BATCH AXIS
+    """
+    mat = _mat.copy()
+    orders = []
+    for ax in axes:
+        Psi = Psis[ax-1].copy()
+        np.fill_diagonal(Psi, 0)
+        Psi /= Psi.sum(axis=0, keepdims=True)
+        start = Psi.max(axis=0).argmax()
+        if first_idx is None:
+            rows = [start]
+        else:
+            rows = [first_idx]
+        for i in range(Psi.shape[0]-1):
+            row = rows[-1]
+
+            # Set column to 0 if already used so that it
+            # never becomes the strongest connection again
+            Psi[:, row] = 0
+
+            # Add strongest connection as next frame
+            rows.append(np.argmax(np.abs(Psi[row])))
+        slices = [slice(None)] * (ax+1)
+        slices[-1] = rows
+        mat = mat[tuple(slices)]
+        orders.append(rows)
+    if not return_order:
+        return mat
+    return mat, orders
