@@ -243,10 +243,13 @@ def shrink(
 
 def shrink_sparsities(
     Psis: "List of matrices to shrink",
-    sparsities: "List assumed sparsities"
+    sparsities: "List assumed sparsities",
+    safe: "If false, edit in-place, else make copy" = False
 ) -> "List of sparsity-shrunk Psis":
     out = []
     for Psi, s in zip(Psis, sparsities):
+        if safe:
+            Psi = Psi.copy()
         Psabs = np.abs(Psi)
         np.fill_diagonal(Psabs, 0)
         quant = np.quantile(Psabs, 1-s)
