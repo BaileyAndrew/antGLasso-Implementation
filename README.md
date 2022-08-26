@@ -1,3 +1,14 @@
+# Repository Structure
+
+The branch `LeedsAIMed-ConSim2022` contains a shrunken version of this repository that will contain just the relevant aspects for the Leeds AI-Medical 2022 Conference.  That is a subset of the `main` branch, so feel free to poke around that branch as well - you are currently looking at the `main` branch.  Files of interest would be:
+
+* `antGLasso.py` - The implementation of our algorithm.
+* `Conference Paper.pdf` - The conference paper.
+* `Supplementary Material.pdf` - The suplementary material of our conference paper.  We highly recommend looking at this as our main contribution is our mathematical development of our new algorithm, but the mathematical proofs cannot be compressed into the 6 page limit for the conference due to their nature of being mathematical proofs.
+*  `Tech Demo.ipynb` - A notebook demonstrating that the algorithm works.
+
+This README file also contains a large and detailed explanation of a couple of our experiments, including gif versions of figures that could only be statically represented in the paper (rotating ducks).  It is by no means necessary to read - in fact most information here is also present in our paper.
+
 # Installation
 
 We recommend installing `numpy` with intel's blas backend:
