@@ -1,6 +1,6 @@
 # Repository Structure
 
-The branch `LeedsAIMed-ConSim2022` contains a shrunken version of this repository that will contain just the relevant aspects for the Leeds AI-Medical 2022 Conference.  That is a subset of the `main` branch, so feel free to poke around that branch as well - you are currently looking at the `main` branch.  Files of interest would be:
+The branch `LeedsAIMed-ConSim2022` contains a shrunken version of this repository that will contain just the relevant aspects for the Leeds AI-Medical 2022 Conference.  That is a subset of the `main` branch, so feel free to poke around that branch as well - you are currently looking at the `LeedsAIMed-ConSim2022` branch.  Files of interest would be:
 
 * `antGLasso.py` - The implementation of our algorithm.
 * `Conference Paper.pdf` - The conference paper.
