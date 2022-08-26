@@ -287,6 +287,8 @@ def reconstruct_axes(_mat, /, axes: list, Psis, return_order=False, first_idx=No
     of the data.
     
     REQUIRES THE FIRST AXIS TO BE A BATCH AXIS
+    
+    WARNING: The matrix it returns is wrong, but the ordering is correct.
     """
     mat = _mat.copy()
     orders = []
