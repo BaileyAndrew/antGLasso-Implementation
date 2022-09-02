@@ -10,7 +10,7 @@ import warnings
 # for testing
 from Scripts.utilities import kron_sum_diag, tr_p, K
 
-from Scripts.anBiGLasso import shrink
+from Scripts.antGLasso import shrink
 
 # Note: in matrix variable name subscripts:
 # 'sisj' will represent '\i\j'
