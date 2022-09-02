@@ -560,7 +560,7 @@ def get_cms_for_betas_antGLasso(
     verbose: bool = False,
     df_scale: int = 2,
     try_sparsities: bool = False,
-    sparsity: "0 <= x <= 1" = 0.2
+    sparsity: "0 <= x <= 1" = 0.2,
 ) -> (
     "List of all average confusion matrices for Psi",
     "List of all average confusion matrices for Theta",
@@ -573,7 +573,7 @@ def get_cms_for_betas_antGLasso(
     We enforce beta_1 = beta_2.
     """
 
-    Psis_cms = np.zeros((*betas_to_try.shape, 2, 2, 2))
+    Psis_cms = np.zeros((attempts, *betas_to_try.shape, 2, 2, 2))
     for idx_alg, kwargs_gen in enumerate(kwargs_generator(sizes, samples, df_scale, sparsity)):
         for idx_b, b in enumerate(betas_to_try[idx_alg]):
             if verbose:
@@ -586,11 +586,11 @@ def get_cms_for_betas_antGLasso(
                     B_approx_iters=100,
                     **regularizer
                 )
-                Psis_cms[idx_alg, idx_b, ...] += np.array([generate_confusion_matrices(
+                Psis_cms[attempt, idx_alg, idx_b, ...] = np.array([generate_confusion_matrices(
                     Psis[idx],
                     Psis_gen[idx],
                     mode=cm_mode
-                ) for idx in range(2)]) / attempts
+                ) for idx in range(2)])
                 # End of attempts loop
             # End of betas loop
         # End of algorithms loop
@@ -602,11 +602,12 @@ def make_cm_plots_antGLasso(
     samples: "List of problem samples to try",
     title = None,
     betas_to_highlight: "List of *indices* of beta values to highlight on graph" = None,
-    betas = None
+    betas = None,
+    omit_errorbars = False
 ) -> ("Matplotlib Figure", "Tuple of Axes"):
-    D = Psis_cms.shape[2]
+    D = Psis_cms.shape[3]
     with plt.style.context('Solarize_Light2'):
-        plt.rcParams['axes.prop_cycle'] = cycler(color=[
+        colors=[
             '#006BA4',
             '#FF800E',
             '#ABABAB',
@@ -617,16 +618,47 @@ def make_cm_plots_antGLasso(
             '#A2C8EC',
             '#FFBC79',
             '#CFCFCF'
-        ])
+        ]
         fig, axs = plt.subplots(figsize=(8, 8*D), nrows=D)
-        for idx, (confmats, ax) in enumerate(zip(np.rollaxis(Psis_cms, 2), axs)):
-            name = f"Psi{idx}"
-            precisions = dict({})
-            recalls = dict({})
+        for idx, (confmats, ax) in enumerate(zip(np.swapaxes(Psis_cms, 0, 3), axs)):
+            name = f"Input Tensor Axis {idx+1}"
             for idx_alg, (size, sample) in enumerate(product(sizes, samples)):
-                precisions[name] = [precision(cm) for cm in confmats[idx_alg, ...]]
-                recalls[name] = [recall(cm) for cm in confmats[idx_alg, ...]]
-                ax.plot(recalls[name], precisions[name], label=f"{size=} {sample=}")
+                precisions = np.array([
+                    [precision(cm) for cm in attempts_mat]
+                    for attempts_mat in confmats[idx_alg].swapaxes(1, 0)
+                ])
+                recalls = np.array([
+                    [recall(cm) for cm in attempts_mat]
+                    for attempts_mat in confmats[idx_alg].swapaxes(1, 0)
+                ])
+                avg_precisions = precisions.mean(axis=0)
+                avg_recalls = recalls.mean(axis=0)
+                std_precisions = precisions.std(axis=0)
+                std_recalls = recalls.std(axis=0)
+                upper_precisions = avg_precisions + std_precisions
+                upper_recalls = avg_recalls + std_recalls
+                lower_precisions = avg_precisions - std_precisions
+                lower_recalls = avg_recalls - std_recalls
+                
+                ax.plot(
+                    avg_recalls,
+                    avg_precisions,
+                    label=f"antGLasso {size=} {sample=}",
+                    c=colors[idx_alg]
+                )
+                def polyx():
+                    for r in zip(upper_recalls):
+                        yield r
+                    for r in zip(lower_recalls[::-1]):
+                        yield r
+                def polyy():
+                    for p in zip(upper_precisions):
+                        yield p
+                    for p in zip(lower_precisions[::-1]):
+                        yield p
+                if not omit_errorbars:
+                    ax.fill(list(polyx()), list(polyy()), c=colors[idx_alg], alpha=0.2)
+                    
                 ax.set_xlabel("Recall")
                 ax.set_ylabel("Precision")
                 ax.set_title(name)
@@ -636,7 +668,7 @@ def make_cm_plots_antGLasso(
                 if betas_to_highlight is not None:
                     for beta_to_highlight in betas_to_highlight[idx_alg]:
                         bval = betas[idx_alg, beta_to_highlight]
-                        cmval = confmats[idx_alg, beta_to_highlight]
+                        cmval = confmats[idx_alg, beta_to_highlight].mean(axis=0)
                         _precision = precision(cmval)
                         _recall = recall(cmval)
                         ax.annotate(
