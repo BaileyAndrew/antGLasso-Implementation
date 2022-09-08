@@ -43,7 +43,7 @@ def antGLasso_heuristic(
     *,
     betas: ("L1 penalties for Psis", "Hyperparameter") = None,
     B_approx_iters: (int, "Hyperparameter") = 10,
-    sparsities: ("List of numbers of edges to keep for Psis", "Hyperparameter") = None
+    sparsities: ("List of percent of edges to keep for Psis", "Hyperparameter") = None
 ):
     """
     See `calculateEigenvalues` for explanation of
@@ -75,7 +75,7 @@ def eigenvalues_heuristic(Ss, Vs, B_approx_iters):
         V = Vs[idx]
         d = ds[idx]
         ds_slash_d = [d for i, d in enumerate(ds) if i != idx]
-        Sigmas = np.prod(ds_slash_d) * np.diag(V.T @ S @ V)
+        Sigmas = np.diag(V.T @ S @ V)
         Sigmas = np.tile(
             Sigmas.reshape(d, *[1 for _ in ds_slash_d]),
             (1, *ds_slash_d)
