@@ -1,12 +1,10 @@
 # Repository Structure
 
-The branch `NeurIPS-Graph-Workshop-2022` is the primary version of this repository.  The `main` branch contains more experiments, but they are unpolished and their results are unpublished.  **This branch is a WIP**
+The branch `NeurIPS-Graph-Workshop-2022` is the primary version of this repository.  The `main` branch contains more experiments (not seen in the paper), but they are unpolished.
 
 Files of interest would be:
 
 * `antGLasso.py` - The implementation of our algorithm.
-* `Conference Paper.pdf` - The conference paper.
-* `Supplementary Material.pdf` - The suplementary material of our conference paper, containing primarily proofs.
 *  `Reproducibility Demonstration.ipynb` - A notebook demonstrating the experiments we reported in the paper.
 
 This README file also contains a large and detailed explanation of a couple of our experiments, including gif versions of figures that could only be statically represented in the paper (rotating ducks).
