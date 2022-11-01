@@ -4,7 +4,7 @@ The branch `NeurIPS-Graph-Workshop-2022` is the primary version of this reposito
 
 Files of interest would be:
 
-* `Python Implementation/antGLasso.py` - The implementation of our algorithm.
+* `Python Implementation/Scripts/antGLasso.py` - The implementation of our algorithm.
 *  `Tech Demo.ipynb` - A notebook demonstrating the experiments we reported in the paper.
 
 This README file also contains a large and detailed explanation of a couple of our experiments, including gif versions of figures that could only be statically represented in the paper (rotating ducks).
