@@ -77,12 +77,12 @@ of freedom being twice the size of the matrix.  If you draw from the same distri
 but with half the degrees of freedom, you will get slow-converging, poor-performing
 results.  We look at both of these cases.
 
-![All Together](Plots/Runtimes%20Comparison/All%20Together.png)
+![All Together](Plots/Final/All%20Together.png)
 
 For large sample data, due to memory usage concerns we only tested up to 500x500 inputs rather than 5000x5000,
 but the trend should be clear.
 
-![All Together Tensors](Plots/Runtimes%20Comparison/All%20Together%20Tensors.png)
+![All Together Tensors](Plots/Final/All%20Together%20Tensors.png)
 
 For 3D tensors, antGLasso is still the fastest, but TeraLasso closes the gap somewhat.  This is because
 the expense of creating the empirical covariance matrices starts to become dominant as the number
