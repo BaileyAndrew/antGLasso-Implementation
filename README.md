@@ -42,7 +42,7 @@ precision matrices of matrix data (within-row and within-column precisions).
 There are two variants of the algorithm - one with optimal space complexity
 (whose performance is dependent on a hyperparameter `b` controlling the goodness
 of the approximation, here we set `b=10`) and one with poor space complexity
-but slightly better performance.  The latter one is called 'Hungry anBiGLasso'.
+but slightly better performance.  The latter one is called 'Hungry antGLasso'.
 For brevity, this ReadMe won't cover Hungry antGLasso, but the repo does contain
 precision-recall plots in the `Plots` folder.
 
@@ -63,9 +63,9 @@ We use the out-of-the-box hyperparameters for all algorithms.
 ### Summary
 
 Based on the results of my experiments, I would recommend EiGLasso when speed is not an issue,
-and antGLasso if speed becomes an issue.  anBiGLasso can handle a 1600x1600 dataset in
+and antGLasso if speed becomes an issue.  antGLasso can handle a 1600x1600 dataset in
 less than a minute, whereas EiGLasso can only handle a 300x300 dataset in the same timeframe.
-However, EiGLasso, especially on small samples, is more accurate than anBiGLasso.
+However, EiGLasso, especially on small samples, is more accurate than antGLasso.
 
 ### Runtimes
 
@@ -219,7 +219,7 @@ some effort).
 Given a machine
 with sufficient memory, extrapolating the cubic time complexity implies it would take $20 \times 4^3$ seconds, or 21 minutes to run.
 This is a very reasonable runtime, indicating that the limits of this algorithm are bounded by memory not speed.  Since the space
-complexity of anBiGLasso is optimal, this is a fundamental limit of the BiGraphical Lasso problem itself rather than our algorithm.
+complexity of antGLasso is optimal, this is a fundamental limit of the BiGraphical Lasso problem itself rather than our algorithm.
 
 However, in the case of the COIL data there is a way around this!  The natural structure of the data is a 3D tensor of frames, rows
 and columns.  The input data is then of size (72, 128, 128), and the outputs are (72, 72), (128, 128), (128, 128).  These outputs require
