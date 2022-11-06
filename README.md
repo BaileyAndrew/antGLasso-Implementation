@@ -203,7 +203,8 @@ reason is that it has two peaks).  We weren't able to get good results using a h
 for the eigenvalues of the precision matrix.  This heuristic antGLasso can accept empirical covariance matrices as input, allowing
 us to apply the nonparanormal skeptic.
 
-In the performance graphs from the previous section, the heuristic is called `anBiGLasso_cov` _(I'll change name later)_.  Its precision
+In the performance graphs from the previous section, the heuristic is called `anBiGLasso_cov`
+(as these graphs were generated before the algorithm was generalized to tensor data, becoming `antGLasso_cov`).  Its precision
 recall curves are comparable to EiGLasso's, except that it has an upper bound on the recall, that gets lower as the problem size
 increases.  This is because of the way the heuristic works, unfortunately.  So it's not an ideal solution.
 
