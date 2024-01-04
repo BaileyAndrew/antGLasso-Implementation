@@ -1,4 +1,4 @@
-**This code is not maintained!  It has since been expanded and published as a package; see the repository ![for the GmGM python package](https://github.com/BaileyAndrew/GmGM-python/tree/main)**
+**This code is not maintained!  It has since been expanded and published as a package; see the repository [for the GmGM python package](https://github.com/BaileyAndrew/GmGM-python/tree/main)**
 
 # Repository Structure
 
