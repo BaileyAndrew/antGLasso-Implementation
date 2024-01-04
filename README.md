@@ -1,3 +1,5 @@
+**This code is not maintained!  It has since been expanded and published as a package; see the repository ![for the GmGM python package](https://github.com/BaileyAndrew/GmGM-python/tree/main)**
+
 # Repository Structure
 
 The branch `NeurIPS-Graph-Workshop-2022` is the primary version of this repository.  The `main` branch contains more experiments (not seen in the paper), but they are unpolished.
